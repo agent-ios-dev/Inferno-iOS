@@ -467,18 +467,19 @@ final class GuestUSB {
     /// outstanding here, but a guest busy for a while says nothing either.
     private func resendIfStuck(_ channel: Channel) throws {
         muxLock.lock()
-        let patience: TimeInterval = channel.txSeq != channel.txAcked ? 3 : 15
-        let stuck = Date().timeIntervalSince(lastProgress) > patience
+        let patience: TimeInterval = 3
+        let stuck = !channel.pendingTCP.isEmpty && Date().timeIntervalSince(lastProgress) > patience
             && Date().timeIntervalSince(lastResend) > patience
         if stuck { lastResend = Date() }
+        let retry = channel.pendingTCP
         muxLock.unlock()
         guard stuck else { return }
 
-        sendLock.lock(); defer { sendLock.unlock() }
-        LogCapture.shared.note(L("USB гостя: гость молчит — повторяю последние %d пакетов", recent.count))
-        for packet in recent {
-            try bulkOut(packet)
-            if packet.count % maxPacket == 0 { try bulkOut([]) }
+        // Retransmit TCP sequence numbers, never old usbmux frame numbers.
+        // Replaying completed mux frames produces duplicates on every channel,
+        // including restored, even when only ASR is waiting for an ACK.
+        for packet in retry {
+            try sendTcp(channel, flags: packet.flags, payload: packet.bytes, sequence: packet.sequence)
         }
     }
 
@@ -606,6 +607,7 @@ final class GuestUSB {
         fileprivate var peerWindow = 0
         fileprivate var inbox = [UInt8]()
         fileprivate var closed = false
+        fileprivate var pendingTCP: [(sequence: UInt32, flags: UInt8, bytes: [UInt8])] = []
 
         fileprivate init(host: GuestUSB, localPort: UInt16, remotePort: UInt16) {
             self.host = host
@@ -667,14 +669,24 @@ final class GuestUSB {
         throw Failure.refused(port)
     }
 
-    private func sendTcp(_ channel: Channel, flags: UInt8, payload: [UInt8] = []) throws {
+    private func sendTcp(_ channel: Channel, flags: UInt8, payload: [UInt8] = [], sequence: UInt32? = nil) throws {
         sendLock.lock(); defer { sendLock.unlock() }
+        muxLock.lock()
+        let start = sequence ?? channel.txSeq
+        let ack = channel.txAck
+        if sequence == nil {
+            // Publish before the blocking USB send: the pump can receive its
+            // ACK before sendMux returns to this thread.
+            let consumed = UInt32(payload.count) + (flags & 0x02 != 0 ? 1 : 0)
+            channel.txSeq &+= consumed
+            if consumed > 0 { channel.pendingTCP.append((start, flags, payload)) }
+        }
+        muxLock.unlock()
         var header = be16(channel.localPort) + be16(channel.remotePort)
-        header += be32(channel.txSeq) + be32(channel.txAck)
+        header += be32(start) + be32(ack)
         header += [5 << 4, flags]
         header += be16(UInt16((256 * 1024) >> 8)) + be16(0) + be16(0)
         try sendMux(.tcp, header: header, payload: payload)
-        channel.txSeq &+= UInt32(payload.count) + (flags & 0x02 != 0 ? 1 : 0)
     }
 
     /// Reads from the device and files away what comes, returning as soon as
@@ -721,6 +733,10 @@ final class GuestUSB {
                 if advance > 0 && advance <= outstanding {
                     lastProgress = Date()
                     channel.txAcked = acknowledged
+                    channel.pendingTCP.removeAll { packet in
+                        let end = packet.sequence &+ UInt32(packet.bytes.count) &+ (packet.flags & 2 != 0 ? 1 : 0)
+                        return Int32(bitPattern: acknowledged &- end) >= 0
+                    }
                 }
             }
             muxLock.unlock()
