@@ -22,6 +22,11 @@ import CoreGraphics
         func report(_ reason: String) {
             // Export only fixed booleans, never raw firmware/SEP console lines.
             let hostLog = LogCapture.shared.text
+            let lastRequest = hostLog.components(separatedBy: .newlines).last {
+                $0.contains("Restore: the guest asks for ")
+            }.flatMap { $0.components(separatedBy: "Restore: the guest asks for ").last }.map {
+                String($0.prefix(while: { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == ",") }).prefix(80))
+            } ?? ""
             let guestLog: String = {
                 guard let file = try? FileHandle(forReadingFrom: VMConfig.guestConsoleLog) else { return "" }
                 defer { try? file.close() }
@@ -39,6 +44,7 @@ import CoreGraphics
                 "seconds": Int(Date().timeIntervalSince(started)), "setup_pending": setup.pending,
                 "setup_message": setup.message,
                 "setup_fraction": setup.fraction,
+                "last_restore_request": lastRequest,
                 "asr_socket_opened": hostLog.contains("Restore: ASR on port"),
                 "asr_validation_completed": hostLog.contains("Restore: the image is validated, sending it"),
                 "asr_payload_sent": hostLog.contains("Restore: the whole system image is sent"),
