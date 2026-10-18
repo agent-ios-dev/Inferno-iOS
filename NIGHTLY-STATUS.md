@@ -47,6 +47,11 @@ it also exports four bounded descriptor counters, never addresses or payloads.
 Production remains **37d6816**. Inspect the next run before changing DMA or
 USB semantics; current evidence calls for translation-level diagnosis.
 
+Active at checkpoint: **39164023616**, app **950c71f**, backend **037ed75**.
+This is the DART classification + five-second fault observation test. Check
+its actual report and verification on the same app revision before scheduling
+a new restore. No duplicate run is needed. No production IPA was built.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
