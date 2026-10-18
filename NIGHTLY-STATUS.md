@@ -62,6 +62,16 @@ the actual wait helper and uses a second pthread to complete invalidation;
 it has a ten-second timeout to catch deadlock. No permissions are bypassed.
 Production remains **37d6816**; no new production IPA was built.
 
+Verification **39164952701 passed** for app **5872064** + backend **d1fb886**:
+actual C DMA helper and DART invalidation/wait regression, real Swift USB
+socket tests, identity/download validators, iOS/macOS/harness typechecks and
+guest daemon C check. Ordering-only regression also passed in **39164811241**.
+Active clean restore: **39165077281**, exact app **5872064**, backend **d1fb886**.
+Check its evidence/progress before dispatching another run; do not duplicate.
+It is the first full restore of the actual synchronization fix, not an IPA
+release. A successful transfer/install/reset is still required before judging
+the normal guest boot and framebuffer.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
