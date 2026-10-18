@@ -45,6 +45,8 @@ import CoreGraphics
                 "setup_message": setup.message,
                 "setup_fraction": setup.fraction,
                 "last_restore_request": lastRequest,
+                "current_dma_in_failed": hostLog.contains("DWC3-DMA: current IN range failed"),
+                "current_dma_out_failed": hostLog.contains("DWC3-DMA: current OUT range failed"),
                 "asr_socket_opened": hostLog.contains("Restore: ASR on port"),
                 "asr_validation_completed": hostLog.contains("Restore: the image is validated, sending it"),
                 "asr_payload_sent": hostLog.contains("Restore: the whole system image is sent"),
