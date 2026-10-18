@@ -39,18 +39,22 @@ ownership still HWO, buffer/status unchanged. No cancellation classifications,
 no reported panic or sequence error. This run does not support the hypothesis
 of a reused/unowned descriptor. Verification **39163372686 passed**.
 
-Next backend **037ed75** classifies dart-usb faults (TTBR, table read, invalid
-page, protection, invalidation busy) using fixed strings only. No fault is
-bypassed. The harness now waits five seconds after setup failure before
-collecting evidence, to let a possible fault interrupt/panic reach the console;
-it also exports four bounded descriptor counters, never addresses or payloads.
-Production remains **37d6816**. Inspect the next run before changing DMA or
-USB semantics; current evidence calls for translation-level diagnosis.
+Run **39164023616**, app **950c71f**, backend **037ed75**, identified
+**dart-usb translation requested during invalidation**. TTBR, invalid page,
+unreadable table and protection categories were false. OUT rejected on
+`NORData`, 40 seconds; descriptor count=1, index=0, actual=1024, total=32768.
+Ownership/buffer/status remained unchanged. Five-second post-error observation
+still showed no panic or sequence error. Verification **39164023843 passed**.
 
-Active at checkpoint: **39164023616**, app **950c71f**, backend **037ed75**.
-This is the DART classification + five-second fault observation test. Check
-its actual report and verification on the same app revision before scheduling
-a new restore. No duplicate run is needed. No production IPA was built.
+Backend **73d8bd1** completes all selected generation invalidations and clears
+BUSY before mapping notifier callbacks. Previously notifications occurred
+inside BUSY; a reentrant translation was rejected with IOMMU_NONE regardless
+of its valid page table. Translation/protection checks remain intact.
+New regression compiles the actual invalidation switch case and simulates a
+notifier reentering translation, checking BUSY, all selected generations,
+SID remapping and empty invalidation sets. Full restore must still validate
+this fix; an observed BUSY condition alone did not prove the call stack.
+Production remains **37d6816**; no new production IPA was built.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
