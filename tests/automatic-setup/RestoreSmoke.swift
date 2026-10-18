@@ -20,10 +20,27 @@ import CoreGraphics
         let output = URL(fileURLWithPath: ProcessInfo.processInfo.environment["INFERNO_SMOKE_OUTPUT"]!)
         try! FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         func report(_ reason: String) {
+            // Export only fixed booleans, never raw firmware/SEP console lines.
+            let hostLog = LogCapture.shared.text
+            let guestLog: String = {
+                guard let file = try? FileHandle(forReadingFrom: VMConfig.guestConsoleLog) else { return "" }
+                defer { try? file.close() }
+                let end = (try? file.seekToEnd()) ?? 0
+                try? file.seek(toOffset: end > 2_097_152 ? end - 2_097_152 : 0)
+                return String(decoding: file.readData(ofLength: 2_097_152), as: UTF8.self)
+            }()
             var report: [String: Any] = ["profile": AutomaticSetupProfile.id, "reason": reason,
                 "seconds": Int(Date().timeIntervalSince(started)), "setup_pending": setup.pending,
                 "setup_message": setup.message,
                 "setup_fraction": setup.fraction,
+                "asr_socket_opened": hostLog.contains("Restore: ASR on port"),
+                "asr_validation_completed": hostLog.contains("Restore: the image is validated, sending it"),
+                "asr_payload_sent": hostLog.contains("Restore: the whole system image is sent"),
+                "guest_usbmux_sequence_error": guestLog.contains("detected duplicate packet"),
+                "guest_kernel_panic": guestLog.contains("panic(cpu"),
+                "guest_checksum_failure": guestLog.lowercased().components(separatedBy: .newlines).contains {
+                    $0.contains("checksum") && ($0.contains("fail") || $0.contains("mismatch"))
+                },
                 "machine_running": model.isRunning, "guest_frame_received": model.picture.image != nil,
                 "visible_springboard_confirmed": false, "physical_iphone_confirmed": false]
             if let image = model.picture.image {

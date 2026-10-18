@@ -174,7 +174,25 @@ final class RestoreClient {
 
         switch type {
         case "SystemImageData":
-            try sendFilesystem(request)
+            do {
+                try sendFilesystem(request)
+            } catch {
+                // ASR can close its data socket before restored sends the
+                // actual failure status on the independent control channel.
+                // Preserve that code instead of reporting only "guest away".
+                let transferError = error
+                let deadline = Date().addingTimeInterval(30)
+                while Date() < deadline {
+                    guard let status = try? RestoreClient.receive(restored, timeout: 5) else { break }
+                    guard status["MsgType"] as? String == "StatusMsg" else { continue }
+                    if let log = status["Log"] as? String { note(L("Рестор: журнал гостя — %@", log)) }
+                    if let code = (status["Status"] as? NSNumber)?.uint64Value, code != 0 {
+                        throw Failure.guestFailed(code)
+                    }
+                    break
+                }
+                throw transferError
+            }
 
         case "RootTicket":
             try reply(["RootTicketData": Data(ticket)], to: request, over: restored)
