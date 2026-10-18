@@ -23,7 +23,7 @@ func writeAll(_ fd: Int32, _ bytes: [UInt8]) {
     }
 }
 
-func verify(_ size: Int, truncate: Bool = false) throws {
+func verify(_ size: Int, truncate: Bool = false, inError: Bool = false) throws {
     var pair: [Int32] = [0, 0]
     precondition(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
     let peer = pair[1], host = pair[0]
@@ -48,9 +48,10 @@ func verify(_ size: Int, truncate: Bool = false) throws {
             let nak = incoming || outAttempts == 1
             var reply: [UInt8] = [2, request[1]]
             reply += Array(request[2..<6]) + [request[6]] + Array(request[7..<15])
-            reply += nak ? [254, 255, 255, 255] : [0, 0, 0, 0]
+            reply += incoming && inError ? [251, 255, 255, 255] : (nak ? [254, 255, 255, 255] : [0, 0, 0, 0])
             reply += nak ? [0, 0] : [UInt8(accepted & 255), UInt8(accepted >> 8)]
             writeAll(peer, reply)
+            if incoming && inError { return }
             if !nak { received += payload.prefix(accepted) }
             if truncate && !nak && accepted > 0 { return }
             if received.count == expected.count {
@@ -64,9 +65,13 @@ func verify(_ size: Int, truncate: Bool = false) throws {
     defer { Darwin.close(host) }
     do {
         try usb.testBulkOut(expected)
-        precondition(!truncate, "short OUT success was silently accepted")
+        precondition(!truncate && !inError, "short OUT success or IN failure was silently accepted")
     } catch {
-        guard truncate, error.localizedDescription.contains("incomplete OUT") else { throw error }
+        if inError {
+            guard error.localizedDescription.contains("status -5, token 105") else { throw error }
+        } else {
+            guard truncate, error.localizedDescription.contains("incomplete OUT") else { throw error }
+        }
     }
     precondition(done.wait(timeout: .now() + 15) == .success)
 }
@@ -76,4 +81,5 @@ try verify(16384)
 try verify(511)
 try verify(512)
 try verify(512, truncate: true)
+try verify(512, inError: true)
 print("Real GuestUSB: full frame preserved across descriptor boundaries, NAK retries and short-OUT rejection passed")

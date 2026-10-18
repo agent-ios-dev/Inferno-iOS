@@ -501,7 +501,7 @@ final class GuestUSB {
     /// 81" on the guest. What is read is only filed away in `inbound`: acting
     /// on it could mean sending an acknowledgement, and that would go out
     /// ahead of this packet under the next number.
-    private func bulkOut(_ packet: [UInt8]) throws {
+    private func bulkOut(_ packet: [UInt8], frameOffset: Int = 0, frameLength: Int? = nil) throws {
         // The socket accepts buffers larger than a USB bus packet, but DWC3
         // services only the current guest transfer descriptor per request.
         // A 16 KiB request crossing that descriptor's end can succeed with a
@@ -513,7 +513,7 @@ final class GuestUSB {
             var offset = 0
             while offset < packet.count {
                 let end = min(offset + maxPacket, packet.count)
-                try bulkOut(Array(packet[offset..<end]))
+                try bulkOut(Array(packet[offset..<end]), frameOffset: offset, frameLength: packet.count)
                 offset = end
             }
             return
@@ -531,8 +531,14 @@ final class GuestUSB {
                 try transfer(.tokenOut, endpoint: endpointOut, data: packet, retries: 1, delay: 0)
                 return
             } catch Failure.notReady {
-                if Date() > deadline { throw Failure.notReady }
-                drainIn()
+                if Date() > deadline {
+                    recvLock.lock()
+                    let buffered = inbound.count
+                    recvLock.unlock()
+                    LogCapture.shared.note("USB-OUT-NAK: frame_offset=\(frameOffset) frame_length=\(frameLength ?? packet.count) buffered_in=\(buffered)")
+                    throw Failure.usb("OUT NAK timeout, frame offset \(frameOffset)/\(frameLength ?? packet.count), buffered IN \(buffered)")
+                }
+                try drainIn()
                 Thread.sleep(forTimeInterval: 0.001)
             }
         }
@@ -540,12 +546,14 @@ final class GuestUSB {
 
     /// Takes one IN transfer's worth off the device, if it has any, and files
     /// it away unread for `readMux` to take apart later.
-    private func drainIn() {
+    private func drainIn() throws {
         recvLock.lock(); defer { recvLock.unlock() }
-        guard let chunk = try? transfer(.tokenIn, endpoint: endpointIn, length: maxPacket,
-                                        retries: 1, delay: 0),
-              !chunk.isEmpty
-        else { return }
+        let chunk: [UInt8]
+        do {
+            chunk = try transfer(.tokenIn, endpoint: endpointIn, length: maxPacket, retries: 1, delay: 0)
+        } catch Failure.notReady { return }
+        // An idle IN endpoint is normal; a real failure must not be hidden
+        // behind a later, misleading OUT timeout.
         inbound += chunk
     }
 

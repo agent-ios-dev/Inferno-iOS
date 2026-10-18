@@ -66,11 +66,19 @@ Verification **39164952701 passed** for app **5872064** + backend **d1fb886**:
 actual C DMA helper and DART invalidation/wait regression, real Swift USB
 socket tests, identity/download validators, iOS/macOS/harness typechecks and
 guest daemon C check. Ordering-only regression also passed in **39164811241**.
-Active clean restore: **39165077281**, exact app **5872064**, backend **d1fb886**.
-Check its evidence/progress before dispatching another run; do not duplicate.
-It is the first full restore of the actual synchronization fix, not an IPA
-release. A successful transfer/install/reset is still required before judging
-the normal guest boot and framebuffer.
+Clean restore **39165077281**, app **5872064**, backend **d1fb886**, completed
+with failure after 275 seconds. Crucially, invalidation was waited for and no
+DMA rejection, DART fault, guest panic or mux sequence error was reported.
+ASR connected, validated the image and sent fraction **0.0076527** before NAK
+timeout. This is progress, not a completed install or confirmed permanent fix.
+
+Next app diagnostic records the exact OUT frame offset/length and buffered IN
+bytes at timeout. It also propagates real IN errors during OUT backpressure;
+previous `try?` masked them as a later OUT timeout. A real socket regression
+now checks this IN error propagation. Keep backend **d1fb886** fixed to isolate
+this test. Before a transport rewrite, distinguish timeout before a frame from
+timeout midway through it, and check whether IN data is stuck awaiting TCP ACK.
+No new production IPA is built; normal guest boot remains untested.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
