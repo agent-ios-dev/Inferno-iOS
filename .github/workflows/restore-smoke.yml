@@ -15,7 +15,7 @@ jobs:
         run: |
           git init inferno-src
           git -C inferno-src remote add origin https://github.com/agent-ios-dev/Inferno.git
-          git -C inferno-src fetch --depth 1 origin 37d68169800a2e41de7da7e96478a15ac4431ca7
+          git -C inferno-src fetch --depth 1 origin 503a4c2ec1cf8cf456f057e19d9a216b12e3ed51
           git -C inferno-src checkout --detach FETCH_HEAD
           meson setup build/host inferno-src -Dbuildtype=release -Dshared_lib=true -Db_staticpic=true -Dwerror=false -Dhvf=disabled -Dcocoa=disabled -Dgtk=disabled -Dsdl=disabled -Dcurses=disabled -Dcoreaudio=disabled -Dcurl=disabled -Dlibssh=disabled -Dbzip2=disabled -Dvnc=enabled -Dvnc_jpeg=disabled -Dvnc_sasl=disabled -Dtools=disabled
           ninja -C build/host libqemu-aarch64-softmmu.dylib
