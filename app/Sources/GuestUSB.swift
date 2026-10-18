@@ -67,6 +67,12 @@ final class GuestUSB {
         self.socketName = socketName
     }
 
+    #if INFERNO_USB_TEST
+    // Exercise the real transport against a bounded socket peer in CI.
+    convenience init(testSocket: Int32) { self.init(); link = testSocket; endpointOut = 1 }
+    func testBulkOut(_ bytes: [UInt8]) throws { try bulkOut(bytes) }
+    #endif
+
     /// Starts listening. The emulator dials this socket once, as it starts up,
     /// so this has to be in place before the machine does — and it stays put for
     /// the whole run, because there is no second attempt.
@@ -290,8 +296,18 @@ final class GuestUSB {
                 // An ASYNC reply is a promise; the real one follows with the
                 // same id.
                 if replyID != id || status == -6 { continue }
-                if status == -2 { break }                    // NAK: ask again
+                if status == -2 {
+                    // Retrying already consumed OUT bytes would duplicate the
+                    // middle of a mux frame and permanently lose framing.
+                    if token != .tokenIn && length != 0 {
+                        throw Failure.usb("NAK after a partial OUT transfer (\(length)/\(want))")
+                    }
+                    break
+                }
                 guard status == 0 else { throw Failure.usb("status \(status)") }
+                if token != .tokenIn && length != want {
+                    throw Failure.usb("incomplete OUT transfer (\(length)/\(want))")
+                }
                 return body
             }
             Thread.sleep(forTimeInterval: delay)
@@ -479,6 +495,22 @@ final class GuestUSB {
     /// on it could mean sending an acknowledgement, and that would go out
     /// ahead of this packet under the next number.
     private func bulkOut(_ packet: [UInt8]) throws {
+        // The socket accepts buffers larger than a USB bus packet, but DWC3
+        // services only the current guest transfer descriptor per request.
+        // A 16 KiB request crossing that descriptor's end can succeed with a
+        // shorter actual_length. Sending the rest as though it had arrived
+        // corrupts usbmux framing and eventually leaves the endpoint on NAK.
+        // Keep full-sized bus packets until the final short packet. Do not
+        // add a zero-length packet here: sendMux owns frame termination.
+        if packet.count > maxPacket {
+            var offset = 0
+            while offset < packet.count {
+                let end = min(offset + maxPacket, packet.count)
+                try bulkOut(Array(packet[offset..<end]))
+                offset = end
+            }
+            return
+        }
         let started = Date()
         defer {
             // Said out loud: a long refusal is what precedes a dead restore,

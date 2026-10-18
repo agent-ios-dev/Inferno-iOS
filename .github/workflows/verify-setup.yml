@@ -13,6 +13,10 @@ jobs:
         run: |
           swiftc app/Sources/AutomaticSetupProfile.swift tests/automatic-setup/main.swift -o /tmp/inferno-setup-tests
           /tmp/inferno-setup-tests
+      - name: Verify actual USB transport with short descriptors and NAK
+        run: |
+          swiftc -D INFERNO_USB_TEST app/Sources/GuestUSB.swift tests/usb/main.swift -o /tmp/inferno-usb-tests
+          /tmp/inferno-usb-tests
       - name: Typecheck iOS and macOS shared sources
         run: |
           echo 'enum BuildInfo { static let stamp = "CI typecheck" }' > /tmp/InfernoBuildInfo.swift
