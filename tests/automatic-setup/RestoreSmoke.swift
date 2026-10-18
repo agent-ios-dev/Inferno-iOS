@@ -29,6 +29,12 @@ import CoreGraphics
                 try? file.seek(toOffset: end > 2_097_152 ? end - 2_097_152 : 0)
                 return String(decoding: file.readData(ofLength: 2_097_152), as: UTF8.self)
             }()
+            let panicSummary = guestLog.components(separatedBy: .newlines).first { $0.contains("panic(cpu") }.map {
+                // Fresh test VM only. Keep the diagnostic sentence, redact
+                // long hex/base64 values and cap it; never export a raw log.
+                String($0.replacingOccurrences(of: "(?:0x)?[0-9A-Fa-f]{8,}|[A-Za-z0-9+/=_-]{48,}",
+                    with: "<redacted>", options: .regularExpression).prefix(400))
+            } ?? ""
             var report: [String: Any] = ["profile": AutomaticSetupProfile.id, "reason": reason,
                 "seconds": Int(Date().timeIntervalSince(started)), "setup_pending": setup.pending,
                 "setup_message": setup.message,
@@ -38,6 +44,7 @@ import CoreGraphics
                 "asr_payload_sent": hostLog.contains("Restore: the whole system image is sent"),
                 "guest_usbmux_sequence_error": guestLog.contains("detected duplicate packet"),
                 "guest_kernel_panic": guestLog.contains("panic(cpu"),
+                "guest_panic_summary": panicSummary,
                 "guest_checksum_failure": guestLog.lowercased().components(separatedBy: .newlines).contains {
                     $0.contains("checksum") && ($0.contains("fail") || $0.contains("mismatch"))
                 },
