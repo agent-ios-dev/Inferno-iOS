@@ -540,7 +540,7 @@ final class GuestUSB {
     /// it away unread for `readMux` to take apart later.
     private func drainIn() {
         recvLock.lock(); defer { recvLock.unlock() }
-        guard let chunk = try? transfer(.tokenIn, endpoint: endpointIn, length: GuestUSB.usbMTU,
+        guard let chunk = try? transfer(.tokenIn, endpoint: endpointIn, length: maxPacket,
                                         retries: 1, delay: 0),
               !chunk.isEmpty
         else { return }
@@ -566,7 +566,7 @@ final class GuestUSB {
         // to stop the mux from ever coming up.
         let chunk: [UInt8]
         do {
-            chunk = try transfer(.tokenIn, endpoint: endpointIn, length: GuestUSB.usbMTU,
+            chunk = try transfer(.tokenIn, endpoint: endpointIn, length: maxPacket,
                                  retries: 1, delay: 0)
         } catch Failure.notReady {
             return nil
