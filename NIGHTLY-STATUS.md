@@ -15,12 +15,21 @@ with USB IOERROR (-5), before ASR. Neither reported a guest panic or usbmux
 sequence error, but this earlier failure is not proof that either is fixed.
 Earlier runs reached ASR then panicked with dart-usb PTE-invalid reads.
 
-Active at this checkpoint: **39161172286**, app `ff5ca7c`, backend `503a4c2`.
-Its JSON adds `last_restore_request`; the displayed error includes token,
-endpoint and packet length. Inspect its actual result before dispatching a
-replacement. Current main additionally pins `eda00c1` for the next smoke run
-and reports `current_dma_in_failed` / `current_dma_out_failed`, which distinguish
-our range helper's IOERROR from DWC3 cancellation paths.
+Run **39161172286** failed on `RootTicket`: OUT endpoint 2, 36 bytes,
+USB IOERROR (-5), before ASR, without a reported panic or sequence error.
+
+Active controlled comparison (same app **5028041**, different exact backend):
+- **39162001231**: experimental range-only DMA **eda00c1**.
+- **39162003162**: shipping backend **37d6816**.
+Both started 20:09 UTC on 18 October. Inspect their evidence before replacing
+them; do not dispatch duplicates. Verification **39162001090 passed**.
+
+Backend **f5325ff** adds diagnostic classifications for reset, guest ENDXFER,
+queued NAK and inflight dispatch NAK (no behavior change). The smoke report
+exports fixed booleans for these paths, not raw USB/firmware data. This backend
+has not yet been built or tested; production remains pinned to **37d6816**.
+Use it only if comparison results call for cancellation-path diagnosis.
+Reports also include `current_dma_in_failed` / `current_dma_out_failed`.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
