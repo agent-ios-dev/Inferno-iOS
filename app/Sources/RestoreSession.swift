@@ -300,6 +300,9 @@ final class RestoreSession: ObservableObject {
                 throw PatcherFailure.failed("Патчи графики не применены. Восстановление не считается завершённым.")
             }
             if text.contains("PATCHER: done, the machine can be reset now") { return }
+            if text.contains("panic(cpu") {
+                throw PatcherFailure.failed("Гостевая iOS остановилась с kernel panic до завершения патчера. Успех восстановления не подтверждён.")
+            }
             if text.utf8.count > 262144 { text = String(text.suffix(131072)) }
             if handle.offsetInFile >= end { Thread.sleep(forTimeInterval: 2) }
         }

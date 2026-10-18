@@ -17,9 +17,39 @@ import CoreGraphics
         var lastMessage = ""
         var lastProgressBucket = -1
         var finished = false
+        var consoleOffset: UInt64 = 0
+        var consolePartial = ""
+        var patcherPhases = Set<String>()
+        let phaseMarkers: [(String, String)] = [
+            ("waiting", "PATCHER: waiting for the restore to finish"),
+            ("data-ready", "PATCHER: the data volume is here"),
+            ("mounted", "PATCHER: mount_apfs /dev/disk0s1s1 says 0"),
+            ("cache-started", "PATCHER: patching "),
+            ("child-exited", "PATCHER: the patcher exited with"),
+            ("failed", "PATCHER: failed"),
+            ("done", "PATCHER: done, the machine can be reset now"),
+            ("panic", "panic(cpu")]
+        func collectConsolePhases() {
+            guard let file = try? FileHandle(forReadingFrom: VMConfig.guestConsoleLog) else { return }
+            defer { try? file.close() }
+            let end = (try? file.seekToEnd()) ?? 0
+            if consoleOffset > end { consoleOffset = 0; consolePartial = "" }
+            try? file.seek(toOffset: consoleOffset)
+            // Keep fixed flags when early boot output leaves the final tail.
+            let bytes = file.readData(ofLength: 2_097_152)
+            consoleOffset += UInt64(bytes.count)
+            let text = consolePartial + String(decoding: bytes, as: UTF8.self)
+            for (phase, marker) in phaseMarkers where text.contains(marker) {
+                if patcherPhases.insert(phase).inserted {
+                    try? publicProgress.write(contentsOf: Data("Guest phase: \(phase)\n".utf8))
+                }
+            }
+            consolePartial = String(text.suffix(128))
+        }
         let output = URL(fileURLWithPath: ProcessInfo.processInfo.environment["INFERNO_SMOKE_OUTPUT"]!)
         try! FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         func report(_ reason: String) {
+            collectConsolePhases()
             // Export only fixed booleans, never raw firmware/SEP console lines.
             let hostLog = LogCapture.shared.text
             let lastRequest = hostLog.components(separatedBy: .newlines).last {
@@ -44,6 +74,7 @@ import CoreGraphics
                 "seconds": Int(Date().timeIntervalSince(started)), "setup_pending": setup.pending,
                 "setup_message": setup.message,
                 "setup_fraction": setup.fraction,
+                "observed_guest_phases": patcherPhases.sorted(),
                 "last_restore_request": lastRequest,
                 "current_dma_in_failed": hostLog.contains("DWC3-DMA: current IN range failed"),
                 "current_dma_out_failed": hostLog.contains("DWC3-DMA: current OUT range failed"),
@@ -108,6 +139,7 @@ import CoreGraphics
         Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             Task { @MainActor in
                 guard !finished else { return }
+                collectConsolePhases()
                 let bucket = Int(max(0, min(1, setup.fraction)) * 20)
                 if setup.message != lastMessage || bucket != lastProgressBucket {
                     // No console, firmware bytes, SEP key values or raw memory

@@ -80,8 +80,9 @@ this test. Before a transport rewrite, distinguish timeout before a frame from
 timeout midway through it, and check whether IN data is stuck awaiting TCP ACK.
 No new production IPA is built; normal guest boot remains untested.
 
-Active timeout-position restore: **39166127705**, app **8fe6e21**, backend
-**d1fb886** unchanged. Check this exact run before another restore.
+Completed restore **39166127705**, app **8fe6e21**, backend **d1fb886**:
+failed after 5250 seconds on patcher deadline, with **Halt/Restart Timed Out**
+kernel panic. No patcher-done marker or normal system boot confirmed.
 Verification **39165968632 passed**, including real USB socket tests (IN error
 propagation), real C DMA/DART tests and platform typechecks.
 
@@ -94,6 +95,19 @@ The next harness revision adds fixed patcher-phase booleans to its final
 report (waiting, data ready, mount, cache patch start/exit, failed/done),
 without publishing patch addresses or raw console lines. This revision does
 not affect the already-running restore; inspect its actual result first.
+
+Update 22:44 UTC: that run is now complete. Actual public progress timestamps:
+image 95% at 21:29, System 100% at 21:31, Installing 100% at 21:33, patcher
+wait at 21:35, timeout at 22:35. Final ASR flags are false because the bounded
+host-log tail lost earlier entries, not because image transfer did not happen.
+Verification **39170290111 passed** for the patcher-phase report additions.
+
+Next harness streams and retains fixed guest phase flags every five seconds,
+independent of final-tail truncation. This tests whether the daemon started,
+saw data, mounted, patched or exited before reboot timeout; only fixed phase
+names leave CI. RestoreSession now fails on a panic seen while waiting for
+the patcher rather than wasting a full hour. Keep backend **d1fb886** for
+this comparison. Do not bypass the reboot panic or claim patched boot.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
