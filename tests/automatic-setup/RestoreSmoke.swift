@@ -58,6 +58,7 @@ import CoreGraphics
                 "dart_usb_invalid_page": hostLog.contains("DART-USB: invalid page entry"),
                 "dart_usb_page_protection": hostLog.contains("DART-USB: page protection rejected access"),
                 "dart_usb_invalidation_busy": hostLog.contains("DART-USB: translation requested during invalidation"),
+                "dart_usb_invalidation_waited": hostLog.contains("DART-USB: translation waited for invalidation"),
                 "usb_ioerror_controller_reset": hostLog.contains("DWC3-IOERROR: controller reset"),
                 "usb_ioerror_guest_endxfer": hostLog.contains("DWC3-IOERROR: guest ENDXFER"),
                 "usb_ioerror_queued_nak": hostLog.contains("DWC3-IOERROR: queued packet became NAK"),

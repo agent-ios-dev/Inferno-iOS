@@ -54,6 +54,12 @@ New regression compiles the actual invalidation switch case and simulates a
 notifier reentering translation, checking BUSY, all selected generations,
 SID remapping and empty invalidation sets. Full restore must still validate
 this fix; an observed BUSY condition alone did not prove the call stack.
+**d1fb886** additionally waits (acquire) for concurrent BUSY completion before
+the normal cache lookup/page walk. This is safe only together with **73d8bd1**:
+the BUSY region now contains bounded generation atomics and no notifier calls
+or operations waiting for a translating thread. The regression also compiles
+the actual wait helper and uses a second pthread to complete invalidation;
+it has a ten-second timeout to catch deadlock. No permissions are bypassed.
 Production remains **37d6816**; no new production IPA was built.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,

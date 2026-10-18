@@ -5,7 +5,7 @@ on:
       emulator_ref:
         description: Exact backend commit for the controlled restore comparison
         required: true
-        default: 73d8bd16bb1bc878cd960ea57ee0a3123eff2e2a
+        default: d1fb8866bb5e67ec82e396e1418bb77b2f7e1816
         type: string
 permissions:
   contents: read
