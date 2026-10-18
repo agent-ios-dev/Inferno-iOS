@@ -21,7 +21,7 @@ jobs:
         run: |
           git init /tmp/inferno-range-core
           git -C /tmp/inferno-range-core remote add origin https://github.com/agent-ios-dev/Inferno.git
-          git -C /tmp/inferno-range-core fetch --depth 1 origin bc6ce8453b32994cf89d16e80d2ebd6edcc68954
+          git -C /tmp/inferno-range-core fetch --depth 1 origin 06010cc3ee51bb0c41677d08ef290f3728c1ec0e
           git -C /tmp/inferno-range-core checkout --detach FETCH_HEAD
           python3 tests/usb/dwc3-range.py /tmp/inferno-range-core/hw/usb/hcd-dwc3.c
       - name: Typecheck iOS and macOS shared sources

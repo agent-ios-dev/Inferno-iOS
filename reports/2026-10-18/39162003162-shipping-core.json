@@ -1,0 +1,23 @@
+{
+  "asr_payload_sent" : false,
+  "asr_socket_opened" : false,
+  "asr_validation_completed" : false,
+  "current_dma_in_failed" : false,
+  "current_dma_out_failed" : false,
+  "guest_checksum_failure" : false,
+  "guest_frame_received" : true,
+  "guest_kernel_panic" : false,
+  "guest_panic_summary" : "",
+  "guest_usbmux_sequence_error" : false,
+  "last_restore_request" : "NORData",
+  "machine_running" : true,
+  "physical_iphone_confirmed" : false,
+  "profile" : "iphone12,1-18A5351d-v1",
+  "reason" : "automatic setup failed",
+  "screenshot_written" : true,
+  "seconds" : 170,
+  "setup_fraction" : -0.01,
+  "setup_message" : "Автонастройка остановлена: the device does not answer (NAK)",
+  "setup_pending" : true,
+  "visible_springboard_confirmed" : false
+}

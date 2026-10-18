@@ -4,9 +4,8 @@ No completed clean installation, SpringBoard or physical iPhone verification.
 Do not promote any current IPA as a working one-button install.
 
 The released-build workflow still pins backend `37d6816`. Nightly tests use
-experimental backend `eda00c1` (range-only DMA; no DART bypass, plus two
-non-sensitive error classification messages). Its range helper passed a real
-C regression test, but the full restore is not validated.
+experimental range-only DMA (no DART bypass). Its helper passed a real C
+regression test, but the full restore is not validated.
 
 App `c5274ac` changed replay of old usbmux frames to retransmission of only
 unacknowledged TCP data in fresh frames. `baa8f13` also bounds IN transactions
@@ -26,14 +25,19 @@ Neither reported panic or sequence error; neither completed restore.
 Verification **39162001090 passed**. Local bounded evidence is saved in sibling
 `smoke-evidence-<run>` directories.
 
-Backend **bc6ce84** adds diagnostic classifications for reset, guest ENDXFER,
-queued NAK and inflight dispatch NAK (no behavior change). The smoke report
-exports fixed booleans for these paths, not raw USB/firmware data. This backend
-has not yet been built or tested; production remains pinned to **37d6816**.
-It additionally distinguishes address-space rejection from scatter-list
-exhaustion. The next restore should use this exact backend to classify the
-observed OUT failure before changing transfer semantics again.
-Reports also include `current_dma_in_failed` / `current_dma_out_failed`.
+Run **39162736532**, app **c0c8d34**, backend **bc6ce84**, failed after ASR
+validation at 150 seconds: **address space rejected current OUT DMA range**.
+Scatter-list exhaustion, controller reset, guest ENDXFER, queued/inflight NAK
+classifications were all false. No reported panic or sequence error.
+Verification **39162736698 passed**. This narrows the failure to DMA translation,
+not the cancellation paths. Sanitized reports are committed under
+`reports/2026-10-18/`; no guest data or raw logs are included.
+
+Next backend **06010cc** reads the current TRB only after failed OUT DMA and
+classifies changed ownership/buffer/status or unreadable metadata. It logs no
+guest addresses or buffer contents; DMA failure is still returned. This tests
+the stale-prefetched-TRB hypothesis without treating it as proven. Default
+nightly backend is now **06010cc**; production still **37d6816**.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
