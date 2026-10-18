@@ -732,6 +732,7 @@ final class GuestUSB {
             guard let channel else { continue }
 
             if flags & 0x04 != 0 {                            // RST
+                LogCapture.shared.note("USB-TCP: guest reset channel port=\(channel.remotePort)")
                 muxLock.lock(); channel.closed = true; channels[destination] = nil; muxLock.unlock()
                 continue
             }
@@ -770,6 +771,7 @@ final class GuestUSB {
                 try sendTcp(channel, flags: 0x10)
             }
             if flags & 0x01 != 0 {                            // FIN
+                LogCapture.shared.note("USB-TCP: guest finished channel port=\(channel.remotePort)")
                 muxLock.lock(); channel.closed = true; muxLock.unlock()
             }
             return

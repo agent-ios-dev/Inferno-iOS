@@ -20,6 +20,7 @@ import CoreGraphics
         var consoleOffset: UInt64 = 0
         var consolePartial = ""
         var patcherPhases = Set<String>()
+        var volumeMasks = Set<Int>()
         let phaseMarkers: [(String, String)] = [
             ("waiting", "PATCHER: waiting for the restore to finish"),
             ("data-ready", "PATCHER: the data volume is here"),
@@ -39,6 +40,14 @@ import CoreGraphics
             let bytes = file.readData(ofLength: 2_097_152)
             consoleOffset += UInt64(bytes.count)
             let text = consolePartial + String(decoding: bytes, as: UTF8.self)
+            if let regex = try? NSRegularExpression(pattern: "PATCHER: volume-mask=([0-9]+)") {
+                for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                    if let range = Range(match.range(at: 1), in: text), let mask = Int(text[range]), mask < 128,
+                       volumeMasks.insert(mask).inserted {
+                        try? publicProgress.write(contentsOf: Data("Guest volume mask: \(mask)\n".utf8))
+                    }
+                }
+            }
             for (phase, marker) in phaseMarkers where text.contains(marker) {
                 if patcherPhases.insert(phase).inserted {
                     try? publicProgress.write(contentsOf: Data("Guest phase: \(phase)\n".utf8))
@@ -75,6 +84,9 @@ import CoreGraphics
                 "setup_message": setup.message,
                 "setup_fraction": setup.fraction,
                 "observed_guest_phases": patcherPhases.sorted(),
+                "observed_volume_masks": volumeMasks.sorted(),
+                "restored_channel_reset": hostLog.contains("USB-TCP: guest reset channel port=62078"),
+                "restored_channel_finished": hostLog.contains("USB-TCP: guest finished channel port=62078"),
                 "last_restore_request": lastRequest,
                 "current_dma_in_failed": hostLog.contains("DWC3-DMA: current IN range failed"),
                 "current_dma_out_failed": hostLog.contains("DWC3-DMA: current OUT range failed"),

@@ -58,6 +58,20 @@ static int restore_finished(void)
     return stat(DATA_VOLUME, &st) == 0 && stat(SYSTEM_VOLUME, &st) == 0;
 }
 
+/* Fixed device-name probes only. Never print partition data or filesystem
+ * contents. This distinguishes a missing volume from the wrong BSD numbering. */
+static unsigned volume_mask(void)
+{
+    static const char* paths[] = {"/dev/disk0", "/dev/disk0s1", "/dev/disk0s1s1", "/dev/disk0s1s2",
+                                  "/dev/disk1", "/dev/disk1s1", "/dev/disk1s2"};
+    unsigned mask = 0;
+    struct stat st;
+    for (unsigned i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
+        if (stat(paths[i], &st) == 0) { mask |= 1u << i; }
+    }
+    return mask;
+}
+
 static int cache_path(char* out, int size)
 {
     DIR* dir = opendir(CACHE_DIR);
@@ -137,7 +151,16 @@ int main(void)
     printf("*** PATCHER: waiting for the restore to finish\n");
     fflush(stdout);
 
-    while (!restore_finished()) { sleep(2); }
+    unsigned last_mask = ~0u;
+    while (!restore_finished()) {
+        unsigned mask = volume_mask();
+        if (mask != last_mask) {
+            printf("*** PATCHER: volume-mask=%u\n", mask);
+            fflush(stdout);
+            last_mask = mask;
+        }
+        sleep(2);
+    }
     printf("*** PATCHER: the data volume is here -- the restore is done writing\n");
     fflush(stdout);
 

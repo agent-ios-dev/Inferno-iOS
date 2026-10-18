@@ -109,9 +109,20 @@ names leave CI. RestoreSession now fails on a panic seen while waiting for
 the patcher rather than wasting a full hour. Keep backend **d1fb886** for
 this comparison. Do not bypass the reboot panic or claim patched boot.
 
-Active run: **39173701228**, app **22dcfee**, backend **d1fb886**. This is
-the phase-retention / fail-fast-panic run; do not duplicate it. Verification
-**39173607983** was still running at dispatch. Inspect both actual results.
+Run **39173701228**, app **22dcfee**, backend **d1fb886**, failed at 2020
+seconds with "guest went away", last request **FUDData**. Full ASR payload
+and validation are confirmed in JSON. Only observed patcher phase is
+**waiting**; data volume readiness/mount/patch were never observed. No DART
+fault/panic/mux sequence error reported. System 100% at 23:22 UTC, Installing
+100% 23:23, channel lost 23:24. Verification **39173607983 passed**.
+
+Next diagnostic adds a fixed seven-bit guest volume-presence mask while the
+daemon waits: bits 0..6 = disk0, disk0s1, disk0s1s1, disk0s1s2, disk1,
+disk1s1, disk1s2 under /dev. No contents/addresses are exported. This will
+distinguish wrong hardcoded volume numbering from a genuinely missing data
+volume. Host also classifies restored port FIN vs RST. Do not treat a closed
+channel as restore success or change volume paths until evidence supports it.
+Backend stays **d1fb886**, shipping IPA still **37d6816**.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
