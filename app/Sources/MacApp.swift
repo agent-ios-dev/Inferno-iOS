@@ -22,7 +22,9 @@ import SwiftUI
 ///
 /// One window and one model. A second window would be a second emulator, in
 /// this process, where there is room for one.
+#if !INFERNO_RESTORE_SMOKE
 @main
+#endif
 struct InfernoMacApp: App {
     @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var delegate
 
