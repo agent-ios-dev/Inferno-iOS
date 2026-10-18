@@ -109,6 +109,10 @@ names leave CI. RestoreSession now fails on a panic seen while waiting for
 the patcher rather than wasting a full hour. Keep backend **d1fb886** for
 this comparison. Do not bypass the reboot panic or claim patched boot.
 
+Active run: **39173701228**, app **22dcfee**, backend **d1fb886**. This is
+the phase-retention / fail-fast-panic run; do not duplicate it. Verification
+**39173607983** was still running at dispatch. Inspect both actual results.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
