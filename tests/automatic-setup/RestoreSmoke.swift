@@ -53,6 +53,11 @@ import CoreGraphics
                 "dma_failed_out_descriptor_not_owned": hostLog.contains("DWC3-DMA: failed OUT descriptor no longer owned"),
                 "dma_failed_out_descriptor_buffer_changed": hostLog.contains("DWC3-DMA: failed OUT descriptor buffer changed"),
                 "dma_failed_out_descriptor_status_changed": hostLog.contains("DWC3-DMA: failed OUT descriptor status changed"),
+                "dart_usb_invalid_table": hostLog.contains("DART-USB: invalid translation table"),
+                "dart_usb_unreadable_table": hostLog.contains("DART-USB: unreadable page table"),
+                "dart_usb_invalid_page": hostLog.contains("DART-USB: invalid page entry"),
+                "dart_usb_page_protection": hostLog.contains("DART-USB: page protection rejected access"),
+                "dart_usb_invalidation_busy": hostLog.contains("DART-USB: translation requested during invalidation"),
                 "usb_ioerror_controller_reset": hostLog.contains("DWC3-IOERROR: controller reset"),
                 "usb_ioerror_guest_endxfer": hostLog.contains("DWC3-IOERROR: guest ENDXFER"),
                 "usb_ioerror_queued_nak": hostLog.contains("DWC3-IOERROR: queued packet became NAK"),
@@ -68,6 +73,19 @@ import CoreGraphics
                 },
                 "machine_running": model.isRunning, "guest_frame_received": model.picture.image != nil,
                 "visible_springboard_confirmed": false, "physical_iphone_confirmed": false]
+            // Only four decimal counters from an app-owned diagnostic format.
+            // Never export its surrounding emulator output or guest addresses.
+            let descriptorPattern = "DWC3-DMA: failed OUT descriptor index=([0-9]+) count=([0-9]+) actual=([0-9]+) total=([0-9]+)"
+            if let regex = try? NSRegularExpression(pattern: descriptorPattern),
+               let match = regex.matches(in: hostLog, range: NSRange(hostLog.startIndex..., in: hostLog)).last {
+                var counters: [String: Int] = [:]
+                for (index, key) in ["index", "count", "actual", "total"].enumerated() {
+                    if let range = Range(match.range(at: index + 1), in: hostLog), let value = Int(hostLog[range]) {
+                        counters[key] = value
+                    }
+                }
+                report["failed_out_descriptor"] = counters
+            }
             if let image = model.picture.image {
                 let path = output.appendingPathComponent("guest-screen.png")
                 if let writer = CGImageDestinationCreateWithURL(path as CFURL, "public.png" as CFString, 1, nil) {
@@ -92,8 +110,14 @@ import CoreGraphics
                 }
                 if setup.message.hasPrefix("Автонастройка остановлена:") {
                     finished = true
-                    report("automatic setup failed")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(1) }
+                    // A rejected DMA can raise a guest interrupt before its
+                    // panic text reaches the serial file. Keep the stopped
+                    // restore's VM alive briefly; don't mistake an immediate
+                    // snapshot for evidence that the guest never panicked.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        report("automatic setup failed; observed guest for five more seconds")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(1) }
+                    }
                 }
                 if !setup.pending && !setup.busy && model.isRunning && restoredAt == nil { restoredAt = Date() }
                 if let restoredAt, Date().timeIntervalSince(restoredAt) > 900 {

@@ -33,15 +33,19 @@ Verification **39162736698 passed**. This narrows the failure to DMA translation
 not the cancellation paths. Sanitized reports are committed under
 `reports/2026-10-18/`; no guest data or raw logs are included.
 
-Next backend **06010cc** reads the current TRB only after failed OUT DMA and
-classifies changed ownership/buffer/status or unreadable metadata. It logs no
-guest addresses or buffer contents; DMA failure is still returned. This tests
-the stale-prefetched-TRB hypothesis without treating it as proven. Default
-nightly backend is now **06010cc**; production still **37d6816**.
+Run **39163372932**, app **ee8d1d6**, backend **06010cc**, failed on `NORData`
+at 120 seconds: current OUT DMA rejected, descriptor metadata readable,
+ownership still HWO, buffer/status unchanged. No cancellation classifications,
+no reported panic or sequence error. This run does not support the hypothesis
+of a reused/unowned descriptor. Verification **39163372686 passed**.
 
-Active at checkpoint: **39163372932**, app **ee8d1d6**, backend **06010cc**,
-started about 20:29 UTC on 18 October. Inspect its result and the verification
-on the same app commit before scheduling another restore. Do not duplicate it.
+Next backend **037ed75** classifies dart-usb faults (TTBR, table read, invalid
+page, protection, invalidation busy) using fixed strings only. No fault is
+bypassed. The harness now waits five seconds after setup failure before
+collecting evidence, to let a possible fault interrupt/panic reach the console;
+it also exports four bounded descriptor counters, never addresses or payloads.
+Production remains **37d6816**. Inspect the next run before changing DMA or
+USB semantics; current evidence calls for translation-level diagnosis.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
