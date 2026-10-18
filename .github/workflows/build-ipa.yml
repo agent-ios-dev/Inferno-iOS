@@ -53,7 +53,7 @@ jobs:
 
       - name: Cache dependencies (prefix)
         id: cache-prefix
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: prefix
           key: iosdeps-${{ runner.os }}-${{ steps.env.outputs.xcode }}-${{ steps.env.outputs.deps }}
@@ -61,6 +61,13 @@ jobs:
       - name: Build iOS dependencies
         if: steps.cache-prefix.outputs.cache-hit != 'true'
         run: PREFIX="$PREFIX" JOBS=3 scripts/build-ios-deps.sh
+
+      - name: Save successfully built dependencies before emulator compilation
+        if: steps.cache-prefix.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: prefix
+          key: iosdeps-${{ runner.os }}-${{ steps.env.outputs.xcode }}-${{ steps.env.outputs.deps }}
 
       - name: Clone the emulator fork
         run: |
@@ -73,7 +80,11 @@ jobs:
         run: PREFIX="$PREFIX" ./make-cross-file.sh
 
       - name: Fetch required guest filesystem patcher
-        run: git clone --depth 1 https://git.chefkiss.dev/AppleHax/InfernoFSPatcher.git tools/InfernoFSPatcher
+        run: |
+          git init tools/InfernoFSPatcher
+          git -C tools/InfernoFSPatcher remote add origin https://git.chefkiss.dev/AppleHax/InfernoFSPatcher.git
+          git -C tools/InfernoFSPatcher fetch --depth 1 origin 3008aaaa0909824a71ee3040c9edc58703c250f5
+          git -C tools/InfernoFSPatcher checkout --detach FETCH_HEAD
 
       - name: Build libqemu-aarch64-softmmu.dylib
         run: |

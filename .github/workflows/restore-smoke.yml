@@ -1,0 +1,55 @@
+name: Restore real iOS from an empty folder
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  restore:
+    runs-on: macos-26
+    timeout-minutes: 135
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host build dependencies
+        run: brew install meson ninja cmake pkg-config glib pixman libslirp lzfse gmp nettle libtasn1 libpng
+      - name: Build the pinned real emulator
+        run: |
+          git init inferno-src
+          git -C inferno-src remote add origin https://github.com/agent-ios-dev/Inferno.git
+          git -C inferno-src fetch --depth 1 origin 37d68169800a2e41de7da7e96478a15ac4431ca7
+          git -C inferno-src checkout --detach FETCH_HEAD
+          meson setup build/host inferno-src -Dbuildtype=release -Dshared_lib=true -Db_staticpic=true -Dwerror=false -Dhvf=disabled -Dcocoa=disabled -Dgtk=disabled -Dsdl=disabled -Dcurses=disabled -Dcoreaudio=disabled -Dcurl=disabled -Dlibssh=disabled -Dbzip2=disabled -Dvnc=enabled -Dvnc_jpeg=disabled -Dvnc_sasl=disabled -Dtools=disabled
+          ninja -C build/host libqemu-aarch64-softmmu.dylib
+      - name: Build the actual automatic setup controller as a test app
+        run: |
+          git init tools/InfernoFSPatcher
+          git -C tools/InfernoFSPatcher remote add origin https://git.chefkiss.dev/AppleHax/InfernoFSPatcher.git
+          git -C tools/InfernoFSPatcher fetch --depth 1 origin 3008aaaa0909824a71ee3040c9edc58703c250f5
+          git -C tools/InfernoFSPatcher checkout --detach FETCH_HEAD
+          app="$PWD/RestoreSmoke.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources/guest"
+          cp build/host/libqemu-aarch64-softmmu.dylib "$app/Contents/Frameworks/"
+          echo 'enum BuildInfo { static let stamp = "restore smoke" }' > /tmp/InfernoBuildInfo.swift
+          sources=()
+          for file in app/Sources/*.swift; do [[ "$file" == */MacApp.swift ]] || sources+=("$file"); done
+          xcrun swiftc -O -parse-as-library -target arm64-apple-macos15.0 "${sources[@]}" /tmp/InfernoBuildInfo.swift tests/automatic-setup/RestoreSmoke.swift -o "$app/Contents/MacOS/RestoreSmoke"
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 app/guest/patcher-daemon.c -o "$app/Contents/Resources/guest/inferno_patcher"
+          xcrun --sdk iphoneos clang++ -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -std=c++17 tools/InfernoFSPatcher/src/main.cpp -o "$app/Contents/Resources/guest/inferno_fs_patcher"
+          codesign -f -s - "$app/Contents/Resources/guest/"*
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleExecutable string RestoreSmoke' "$app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleIdentifier string dev.agent-ios.inferno-restore-smoke' "$app/Contents/Info.plist"
+          codesign -f -s - "$app/Contents/Frameworks/"*
+          codesign -f -s - "$app"
+      - name: Run original app setup from no guest files, then observe its real framebuffer
+        env:
+          INFERNO_TEST_DOCUMENTS: ${{ github.workspace }}/private-smoke-data
+          INFERNO_SMOKE_OUTPUT: ${{ github.workspace }}/smoke-evidence
+        run: ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: restore-smoke-evidence
+          path: |
+            smoke-evidence/*.json
+            smoke-evidence/*.png
+          if-no-files-found: ignore

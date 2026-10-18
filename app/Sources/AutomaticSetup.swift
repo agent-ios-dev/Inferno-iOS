@@ -17,6 +17,7 @@ import UIKit
     private var operation: Task<Void, Never>?
     private var subscriptions = Set<AnyCancellable>()
     private var restoreFinished = false
+    private var generation = UUID()
     private weak var model: VMModel?
     private let defaults = UserDefaults.standard
     private var cache: URL { VMConfig.documents.appendingPathComponent("SetupDownloads") }
@@ -24,6 +25,12 @@ import UIKit
 
     func start(model: VMModel) {
         guard !busy, !model.isRunning else { return }
+        guard !model.hasRun else {
+            message = "Перезапусти приложение для продолжения. Скачанные файлы и диск сохранены."
+            return
+        }
+        generation = UUID()
+        let attempt = generation
         self.model = model
         model.refreshJIT()
         guard model.config.virtualization || model.jit.isAvailable else {
@@ -38,8 +45,11 @@ import UIKit
         operation = Task {
             do {
                 try claimEmptyMachine()
-                guard let free = RestoreSession.freeSpace, free > 20 * 1_073_741_824 else {
-                    throw AutomaticSetupProfile.Failure.invalid("Для первой установки нужно минимум 20 ГБ свободного места")
+                let savedFirmware = VMConfig.dataDirectory.appendingPathComponent(AutomaticSetupProfile.firmware.name)
+                let firmwareCached = (try? AutomaticSetupProfile.validateFile(savedFirmware, asset: AutomaticSetupProfile.firmware)) != nil
+                let required = (firmwareCached ? 10 : 20) * 1_073_741_824
+                guard let free = RestoreSession.freeSpace, free > required else {
+                    throw AutomaticSetupProfile.Failure.invalid("Недостаточно места: нужно ещё \(required / 1_073_741_824) ГБ")
                 }
                 guard RestoreRamdisk.programs != nil else {
                     throw AutomaticSetupProfile.Failure.invalid("В сборке нет обязательного патчера. Восстановление не запущено.")
@@ -94,7 +104,7 @@ import UIKit
                 RestoreSession.shared.start(model: model, keepRunningForSystemBoot: true)
                 Task { [weak self] in
                     try? await Task.sleep(nanoseconds: 60_000_000_000)
-                    guard let self, self.busy, !self.restoreFinished, !model.isRunning else { return }
+                    guard let self, self.generation == attempt, self.busy, !self.restoreFinished, !model.isRunning else { return }
                     RestoreSession.shared.stop()
                     self.fail("Эмулятор не запустился. Проверь JIT через StikDebug; скачанные файлы сохранены.")
                 }
@@ -112,9 +122,20 @@ import UIKit
             }
         } else {
             let existing = (try? manager.contentsOfDirectory(atPath: VMConfig.dataDirectory.path)) ?? []
-            let reserved = Set(RestorePrep.disks.map(\.name) + ["root.qcow2", "root_ticket.der", "Restore"])
+            let reserved = Set(RestorePrep.disks.map(\.name) + ["root.qcow2", "root_ticket.der"])
             guard existing.allSatisfy({ !reserved.contains($0) }) else {
                 throw AutomaticSetupProfile.Failure.invalid("Уже найдена другая машина. Автонастройка не будет её перезаписывать.")
+            }
+            // Bootstrap creates empty Restore/Firmware directories on the very
+            // first app launch. They are not a manually installed machine.
+            if let files = manager.enumerator(at: VMConfig.dataDirectory.appendingPathComponent("Restore"),
+                                               includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey]) {
+                for case let file as URL in files {
+                    let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                    guard values.isRegularFile != true, values.isSymbolicLink != true else {
+                        throw AutomaticSetupProfile.Failure.invalid("В папке Restore уже есть другая прошивка. Она сохранена.")
+                    }
+                }
             }
             try manager.createDirectory(at: VMConfig.documents, withIntermediateDirectories: true)
             let data = try PropertyListSerialization.data(fromPropertyList: ["profile": AutomaticSetupProfile.id], format: .xml, options: 0)
@@ -149,6 +170,7 @@ import UIKit
     private func bootRestoredMachine(_ model: VMModel) {
         guard restoreFinished, model.isRunning else { return }
         restoreFinished = false
+        model.picture.image = nil
         let port = model.config.qmpPort
         Task {
             do {

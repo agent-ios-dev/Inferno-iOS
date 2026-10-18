@@ -1,5 +1,11 @@
 # Inferno for iPhone
 
+> **agent-ios-dev fork:** an automatic first-install wizard is being added;
+> see [AUTOMATIC-SETUP.md](AUTOMATIC-SETUP.md) for the fixed firmware profile,
+> StikDebug setup, checks and runtime verification limits. The upstream manual
+> setup below remains available as an advanced path. A working end-to-end
+> automatic installation has not yet been confirmed on a physical iPhone.
+
 An emulated iPhone 11, running as an app on a real iPhone.
 
 This is a SwiftUI front end for [Inferno](https://github.com/ChefKissInc/Inferno) — ChefKiss's

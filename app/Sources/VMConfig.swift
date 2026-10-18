@@ -55,6 +55,11 @@ struct VMConfig {
     /// is not sandboxed would be handed the user's whole Documents folder, so it
     /// keeps to a folder of its own inside it.
     static var documents: URL {
+        #if os(macOS)
+        if let isolated = ProcessInfo.processInfo.environment["INFERNO_TEST_DOCUMENTS"], isolated.hasPrefix("/") {
+            return URL(fileURLWithPath: isolated, isDirectory: true)
+        }
+        #endif
         let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         #if os(macOS)
         return base.appendingPathComponent("Inferno")

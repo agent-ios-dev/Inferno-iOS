@@ -92,7 +92,7 @@ enum RestoreRamdisk {
 
     /// The two programs, as the build puts them into the app.
     static var programs: (daemon: URL, patcher: URL)? {
-        let bundle = Bundle.main.bundleURL.appendingPathComponent("guest")
+        let bundle = (Bundle.main.resourceURL ?? Bundle.main.bundleURL).appendingPathComponent("guest")
         let daemon = bundle.appendingPathComponent("inferno_patcher")
         let patcher = bundle.appendingPathComponent("inferno_fs_patcher")
         guard FileManager.default.fileExists(atPath: daemon.path),
