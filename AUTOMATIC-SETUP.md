@@ -61,6 +61,16 @@ reported. After an interrupted VM session, relaunch the app before retrying.
 
 ## Verification and present limits
 
+Runtime status, 2026-10-18: the IPA builds, both platform typechecks and the
+real GuestUSB socket regression tests pass. The clean restore downloads all
+inputs, prepares the guest and reaches ASR image validation/payload transfer.
+It does **not** finish installation: run 39152744199 records a guest
+`dart-usb` PTE-invalid read panic during USB transfer (about 15% in that run).
+No SpringBoard or physical-phone end-to-end success is established.
+Changing DWC3 chain grouping stalled device discovery and was reverted;
+the shipping backend remains the pinned version above. The IPA is an
+experimental build, not a completed one-button installation.
+
 `Verify automatic setup` tests the actual Swift input validators and typechecks
 all shared app sources for iOS and macOS. `Build Inferno.ipa` builds the pinned
 backend, display dependency and required guest patcher. `Restore real iOS from
