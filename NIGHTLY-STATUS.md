@@ -18,17 +18,21 @@ Earlier runs reached ASR then panicked with dart-usb PTE-invalid reads.
 Run **39161172286** failed on `RootTicket`: OUT endpoint 2, 36 bytes,
 USB IOERROR (-5), before ASR, without a reported panic or sequence error.
 
-Active controlled comparison (same app **5028041**, different exact backend):
-- **39162001231**: experimental range-only DMA **eda00c1**.
-- **39162003162**: shipping backend **37d6816**.
-Both started 20:09 UTC on 18 October. Inspect their evidence before replacing
-them; do not dispatch duplicates. Verification **39162001090 passed**.
+Completed controlled comparison (same app **5028041**, different exact backend):
+- **39162001231**, experimental **eda00c1**: ASR connected and validated image;
+  current OUT DMA range failed at 512-byte packet, 80 seconds, fraction 0.00033.
+- **39162003162**, shipping **37d6816**: NAK on `NORData`, 170 seconds, before ASR.
+Neither reported panic or sequence error; neither completed restore.
+Verification **39162001090 passed**. Local bounded evidence is saved in sibling
+`smoke-evidence-<run>` directories.
 
-Backend **f5325ff** adds diagnostic classifications for reset, guest ENDXFER,
+Backend **bc6ce84** adds diagnostic classifications for reset, guest ENDXFER,
 queued NAK and inflight dispatch NAK (no behavior change). The smoke report
 exports fixed booleans for these paths, not raw USB/firmware data. This backend
 has not yet been built or tested; production remains pinned to **37d6816**.
-Use it only if comparison results call for cancellation-path diagnosis.
+It additionally distinguishes address-space rejection from scatter-list
+exhaustion. The next restore should use this exact backend to classify the
+observed OUT failure before changing transfer semantics again.
 Reports also include `current_dma_in_failed` / `current_dma_out_failed`.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,

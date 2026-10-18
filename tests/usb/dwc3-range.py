@@ -20,6 +20,7 @@ typedef int MemTxResult;
 #define MEMTX_ERROR 1
 #define MEMTXATTRS_UNSPECIFIED 0
 #define MIN(a,b) ((a)<(b)?(a):(b))
+static void error_report(const char *message) { (void)message; }
 typedef struct { dma_addr_t base, len; } ScatterGatherEntry;
 typedef struct { void *as; int nsg; ScatterGatherEntry *sg; } QEMUSGList;
 typedef struct { unsigned actual_length; QEMUSGList sgl; } DWC3BufferDesc;

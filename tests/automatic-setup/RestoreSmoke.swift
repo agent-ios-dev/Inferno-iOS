@@ -47,6 +47,8 @@ import CoreGraphics
                 "last_restore_request": lastRequest,
                 "current_dma_in_failed": hostLog.contains("DWC3-DMA: current IN range failed"),
                 "current_dma_out_failed": hostLog.contains("DWC3-DMA: current OUT range failed"),
+                "dma_address_space_rejected_range": hostLog.contains("DWC3-DMA: address space rejected current range"),
+                "dma_scatter_range_exhausted": hostLog.contains("DWC3-DMA: scatter range exhausted"),
                 "usb_ioerror_controller_reset": hostLog.contains("DWC3-IOERROR: controller reset"),
                 "usb_ioerror_guest_endxfer": hostLog.contains("DWC3-IOERROR: guest ENDXFER"),
                 "usb_ioerror_queued_nak": hostLog.contains("DWC3-IOERROR: queued packet became NAK"),
