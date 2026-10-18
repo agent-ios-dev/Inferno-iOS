@@ -1124,6 +1124,7 @@ enum Pane: String, CaseIterable {
 #if os(iOS)
 struct RootView: View {
     @StateObject private var model = VMModel()
+    @ObservedObject private var automaticSetup = AutomaticSetup.shared
     @State private var pane: Pane = .screen
     @State private var fullScreen = false
     @State private var pickFile = false
@@ -1164,7 +1165,7 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if !model.missing.isEmpty && !model.setupSkipped {
+                if ((!model.missing.isEmpty && !model.setupSkipped) || automaticSetup.pending || automaticSetup.busy) {
                     SetupView(model: model)
                         .navigationTitle("Inferno")
                         .inlineNavigationTitle()
@@ -1897,26 +1898,32 @@ struct TerminalView: View {
 /// computer, which is how this worked before there was a restore.
 struct SetupView: View {
     @ObservedObject var model: VMModel
+    @ObservedObject private var automaticSetup = AutomaticSetup.shared
 
-    private enum Source: String { case scratch, folder }
-    @AppStorage("restoreSource") private var sourceRaw = Source.scratch.rawValue
-    private var source: Source { Source(rawValue: sourceRaw) ?? .scratch }
+    private enum Source: String { case automatic, scratch, folder }
+    @AppStorage("restoreSource") private var sourceRaw = Source.automatic.rawValue
+    private var source: Source { Source(rawValue: sourceRaw) ?? .automatic }
 
     var body: some View {
         List {
             Section {
                 Picker(L("Откуда"), selection: $sourceRaw) {
+                    Text("Автоматически").tag(Source.automatic.rawValue)
                     Text(L("С нуля")).tag(Source.scratch.rawValue)
                     Text(L("Готовая папка")).tag(Source.folder.rawValue)
                 }
                 .pickerStyle(.segmented)
+                .disabled(automaticSetup.busy)
             } footer: {
-                Text(source == .scratch
+                Text(source == .automatic ? "Скачать всё и восстановить систему прямо на телефоне."
+                     : source == .scratch
                      ? L("Приложение сделает всё само: диски, распаковку прошивки, оба тикета и прошивку SEP. В свою папку заранее класть нечего — файлы выбираются в «Файлах» и читаются там, где лежат.")
                      : L("Берётся InfernoData, уже лежащая в папке приложения, — та, что собрана на компьютере."))
             }
 
-            if source == .scratch {
+            if source == .automatic {
+                AutomaticSetupSection(model: model)
+            } else if source == .scratch {
                 RestoreKitSetup {
                     // Refreshing right away can make `missing` empty before the
                     // final "Готово" line is even read: this view disappears the

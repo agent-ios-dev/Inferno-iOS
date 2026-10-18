@@ -100,6 +100,10 @@ enum RestorePrep {
         note(L("Подготовка: распаковываю %d файлов", wanted.count))
         let restore = data.appendingPathComponent("Restore")
         for (index, path) in wanted.sorted().enumerated() {
+            guard !path.hasPrefix("/"), !path.contains("\\"),
+                  !path.split(separator: "/", omittingEmptySubsequences: false).contains(where: { $0 == ".." || $0 == "." || $0.isEmpty }) else {
+                throw Failure.cannotRead("недопустимый путь в IPSW")
+            }
             let destination = restore.appendingPathComponent(path)
             try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(),
                                                     withIntermediateDirectories: true)

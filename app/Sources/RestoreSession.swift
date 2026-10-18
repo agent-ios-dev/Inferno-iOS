@@ -42,6 +42,10 @@ final class RestoreSession: ObservableObject {
     @Published private(set) var stage: Stage = .idle
 
     private var usb: GuestUSB?
+    private enum PatcherFailure: LocalizedError {
+        case failed(String)
+        var errorDescription: String? { if case .failed(let message) = self { return message }; return nil }
+    }
 
     /// Whether a restore can be started at all: the ramdisk and everything the
     /// machine needs have to be in place, and nothing else may be running.
@@ -243,7 +247,7 @@ final class RestoreSession: ObservableObject {
         // The restore is written, and the machine is still up because the
         // emulator is holding the reset the guest asked for. That is the
         // window our daemon patches in.
-        waitForPatcher()
+        try waitForPatcher()
         DispatchQueue.main.async { self.model?.shutdown() }
         set(.done)
     }
@@ -258,21 +262,25 @@ final class RestoreSession: ObservableObject {
     ///
     /// An hour is generous on purpose. The patcher walks a two-gigabyte shared
     /// cache, and the phone runs the machine by translating every instruction.
-    private func waitForPatcher() {
+    private func waitForPatcher() throws {
         set(.restoring(L("Патчи файловой системы"), 0.99))
-        guard let handle = try? FileHandle(forReadingFrom: VMConfig.guestConsoleLog) else { return }
+        guard let handle = try? FileHandle(forReadingFrom: VMConfig.guestConsoleLog) else {
+            throw PatcherFailure.failed("Нет журнала патчера. Успех восстановления не подтверждён.")
+        }
         defer { try? handle.close() }
 
-        // From here on only. The console is one file across runs, and a "done"
-        // left in it by the restore before this one would end the wait before
-        // this patcher had started.
-        _ = try? handle.seekToEnd()
+        // VMModel.start truncates the previous run's log before QEMU starts.
+        // Read from zero so a fast patcher is not missed after ASR finishes.
+        try handle.seek(toOffset: 0)
 
         var text = ""
         var seen = Set<String>()
         let deadline = Date().addingTimeInterval(3600)
         while Date() < deadline {
-            if let chunk = try? handle.readToEnd(), !chunk.isEmpty {
+            let position = handle.offsetInFile
+            let end = try handle.seekToEnd()
+            try handle.seek(toOffset: position > end ? 0 : position)
+            if let chunk = try? handle.read(upToCount: 1 << 20), !chunk.isEmpty {
                 text += String(decoding: chunk, as: UTF8.self)
             }
             for line in text.split(separator: "\n") where line.contains("*** PATCHER:") {
@@ -281,10 +289,14 @@ final class RestoreSession: ObservableObject {
                     LogCapture.shared.note(said.replacingOccurrences(of: "*** PATCHER: ", with: "Патчи: "))
                 }
             }
-            if text.contains("PATCHER: done") || text.contains("PATCHER: no shared cache") { return }
-            Thread.sleep(forTimeInterval: 2)
+            if text.contains("PATCHER: no shared cache") || text.contains("PATCHER: failed") {
+                throw PatcherFailure.failed("Патчи графики не применены. Восстановление не считается завершённым.")
+            }
+            if text.contains("PATCHER: done, the machine can be reset now") { return }
+            if text.utf8.count > 262144 { text = String(text.suffix(131072)) }
+            if handle.offsetInFile >= end { Thread.sleep(forTimeInterval: 2) }
         }
-        LogCapture.shared.note(L("Патчи: не дождались — машина останавливается как есть"))
+        throw PatcherFailure.failed("Истекло время ожидания патчера. Диск сохранён, успех не подтверждён.")
     }
 
     /// The firmware archive to restore from.

@@ -84,7 +84,7 @@ static int cache_path(char* out, int size)
 #define DATA_MOUNTPOINT "/mnt8"
 #define OVERRIDES_DIR   DATA_MOUNTPOINT "/db/com.apple.xpc.launchd"
 
-static void disable_services(void)
+static int disable_services(void)
 {
     static const char* const names[] = {
         "com.apple.voicemail.vmd",       "com.apple.CommCenter", "com.apple.CommCenterMobileHelper",
@@ -100,7 +100,7 @@ static void disable_services(void)
     }
     printf("*** PATCHER: mount_apfs %s says %d\n", DATA_VOLUME, mounted);
     fflush(stdout);
-    if (mounted != 0) { return; }
+    if (mounted != 0) { return 1; }
 
     mkdir(DATA_MOUNTPOINT "/db", 0755);
     mkdir(OVERRIDES_DIR, 0755);
@@ -118,11 +118,16 @@ static void disable_services(void)
         close(fd);
         printf("*** PATCHER: five services switched off\n");
     }
-    else { printf("*** PATCHER: could not write the override file\n"); }
+    else {
+        printf("*** PATCHER: failed, could not write the override file\n");
+        fflush(stdout);
+        return 1;
+    }
     fflush(stdout);
 
     char* umount[] = {"/sbin/umount", DATA_MOUNTPOINT, NULL};
     run(umount[0], umount);
+    return 0;
 }
 
 int main(void)
@@ -177,6 +182,11 @@ int main(void)
     int   code = run_to(MOUNTPOINT "/inferno_patch.log", patch_args[0], patch_args);
     printf("*** PATCHER: the patcher exited with %d\n", code);
     fflush(stdout);
+    if (code != 0) {
+        printf("*** PATCHER: failed, filesystem patcher exit %d\n", code);
+        fflush(stdout);
+        return 1;
+    }
 
     int log = open(MOUNTPOINT "/inferno_patch.log", O_RDONLY);
     if (log >= 0) {
@@ -193,7 +203,11 @@ int main(void)
     char* umount[] = {"/sbin/umount", MOUNTPOINT, NULL};
     run(umount[0], umount);
 
-    disable_services();
+    if (disable_services() != 0) {
+        printf("*** PATCHER: failed, launchd overrides were not installed\n");
+        fflush(stdout);
+        return 1;
+    }
 
     printf("*** PATCHER: done, the machine can be reset now\n");
     fflush(stdout);
