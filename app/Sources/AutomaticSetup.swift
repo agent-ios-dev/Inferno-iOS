@@ -91,7 +91,7 @@ import UIKit
                 }
                 observeRestore(model: model)
                 message = "Запуск восстановления iOS…"
-                RestoreSession.shared.start(model: model)
+                RestoreSession.shared.start(model: model, keepRunningForSystemBoot: true)
                 Task { [weak self] in
                     try? await Task.sleep(nanoseconds: 60_000_000_000)
                     guard let self, self.busy, !self.restoreFinished, !model.isRunning else { return }
@@ -134,29 +134,36 @@ import UIKit
             case .failed(let why): self.fail(why)
             case .done:
                 self.restoreFinished = true
-                self.message = "Система восстановлена. Ожидание завершения записи диска…"
-                self.bootAfterShutdown(model)
+                self.message = "Система восстановлена. Переход к обычной загрузке…"
+                self.bootRestoredMachine(model)
             default: break
             }
         }.store(in: &subscriptions)
         model.$qemuState.receive(on: DispatchQueue.main).sink { [weak self] state in
             guard let self, self.busy else { return }
             if case .failed(let why) = state { self.fail(why) }
-            if case .stopped = state, self.restoreFinished { self.bootAfterShutdown(model) }
+            if case .stopped = state { self.fail("Эмулятор остановился во время восстановления. Скачанные файлы и диск сохранены.") }
         }.store(in: &subscriptions)
     }
 
-    private func bootAfterShutdown(_ model: VMModel) {
-        guard restoreFinished, !model.isRunning else { return }
-        restoreFinished = false; subscriptions.removeAll()
-        RestoreSession.shared.stop()
-        pending = false; defaults.set(false, forKey: "automaticSetupPending")
-        model.refreshFiles(); model.start()
-        busy = false; message = "Загрузка iOS. Ожидаем изображение гостевой системы."
-        #if os(iOS)
-        UIApplication.shared.isIdleTimerDisabled = false
-        #endif
-        // Neither a VM start nor a restored disk is proof of SpringBoard.
+    private func bootRestoredMachine(_ model: VMModel) {
+        guard restoreFinished, model.isRunning else { return }
+        restoreFinished = false
+        let port = model.config.qmpPort
+        Task {
+            do {
+                try await Task.detached { try RestoreBootHandoff.run(port: port) }.value
+                subscriptions.removeAll()
+                RestoreSession.shared.stop()
+                pending = false; defaults.set(false, forKey: "automaticSetupPending")
+                model.refreshFiles()
+                busy = false; message = "Загрузка iOS. Ожидаем изображение гостевой системы."
+                #if os(iOS)
+                UIApplication.shared.isIdleTimerDisabled = false
+                #endif
+            } catch { fail(error.localizedDescription) }
+        }
+        // A completed reset is not proof of visible SpringBoard.
     }
 
     func returned(model: VMModel) { if waitingForJIT { start(model: model) } }

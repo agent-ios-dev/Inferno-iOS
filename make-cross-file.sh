@@ -36,6 +36,14 @@ ar         = '$BIN/ar'
 strip      = '$BIN/strip'
 ranlib     = '$BIN/ranlib'
 pkg-config = 'pkg-config'
+cmake      = '$(command -v cmake)'
+
+[cmake]
+CMAKE_SYSTEM_NAME = 'iOS'
+CMAKE_OSX_ARCHITECTURES = 'arm64'
+CMAKE_OSX_SYSROOT = '$SDK'
+CMAKE_OSX_DEPLOYMENT_TARGET = '$DEPLOY'
+CMAKE_TRY_COMPILE_TARGET_TYPE = 'STATIC_LIBRARY'
 
 [built-in options]
 c_args        = [$FLAGS, '-I$PREFIX/include']

@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
     inputs:
       emulator_ref:
-        description: "Branch/tag of the emulator fork (MakrSas/Inferno)"
-        default: "ios"
+        description: "Pinned commit of agent-ios-dev/Inferno with restore boot handoff"
+        default: "37d68169800a2e41de7da7e96478a15ac4431ca7"
 
 concurrency:
   group: ipa-${{ github.ref }}
@@ -28,7 +28,7 @@ jobs:
   build:
     runs-on: macos-26
     env:
-      EMULATOR_REF: ${{ github.event.inputs.emulator_ref || 'ios' }}
+      EMULATOR_REF: ${{ github.event.inputs.emulator_ref || '37d68169800a2e41de7da7e96478a15ac4431ca7' }}
       PREFIX: ${{ github.workspace }}/prefix
 
     steps:
@@ -42,7 +42,7 @@ jobs:
         run: |
           # ldid подписывает помощника для гостя (nsio) с правами на блочные
           # устройства; без него build.sh соберёт приложение без быстрого канала.
-          brew install --quiet meson ninja pkg-config autoconf automake libtool m4 qemu ldid
+          brew install --quiet meson ninja cmake pkg-config autoconf automake libtool m4 qemu ldid
           echo "$(brew --prefix m4)/bin" >> "$GITHUB_PATH"
 
       - name: Environment fingerprint (cache key)
@@ -64,11 +64,16 @@ jobs:
 
       - name: Clone the emulator fork
         run: |
-          git clone --depth 1 -b "$EMULATOR_REF" \
-            https://github.com/MakrSas/Inferno.git inferno-src
+          git init inferno-src
+          git -C inferno-src remote add origin https://github.com/agent-ios-dev/Inferno.git
+          git -C inferno-src fetch --depth 1 origin "$EMULATOR_REF"
+          git -C inferno-src checkout --detach FETCH_HEAD
 
       - name: Meson cross-file
         run: PREFIX="$PREFIX" ./make-cross-file.sh
+
+      - name: Fetch required guest filesystem patcher
+        run: git clone --depth 1 https://git.chefkiss.dev/AppleHax/InfernoFSPatcher.git tools/InfernoFSPatcher
 
       - name: Build libqemu-aarch64-softmmu.dylib
         run: |

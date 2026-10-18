@@ -42,6 +42,7 @@ final class RestoreSession: ObservableObject {
     @Published private(set) var stage: Stage = .idle
 
     private var usb: GuestUSB?
+    private var keepRunningForSystemBoot = false
     private enum PatcherFailure: LocalizedError {
         case failed(String)
         var errorDescription: String? { if case .failed(let message) = self { return message }; return nil }
@@ -99,8 +100,9 @@ final class RestoreSession: ObservableObject {
 
     /// Boots the restore ramdisk and waits for `restored`. Safe to call from the
     /// main thread; everything slow happens elsewhere.
-    func start(model: VMModel) {
+    func start(model: VMModel, keepRunningForSystemBoot: Bool = false) {
         guard !stage.isBusy else { return }
+        self.keepRunningForSystemBoot = keepRunningForSystemBoot
         guard QemuBridge.shared.state != .running else {
             set(.failed(L("Сначала выключите машину: рестор поднимает её по-своему")))
             return
@@ -248,7 +250,7 @@ final class RestoreSession: ObservableObject {
         // emulator is holding the reset the guest asked for. That is the
         // window our daemon patches in.
         try waitForPatcher()
-        DispatchQueue.main.async { self.model?.shutdown() }
+        if !keepRunningForSystemBoot { DispatchQueue.main.async { self.model?.shutdown() } }
         set(.done)
     }
 
