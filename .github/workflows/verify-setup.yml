@@ -17,6 +17,13 @@ jobs:
         run: |
           swiftc -D INFERNO_USB_TEST app/Sources/GuestUSB.swift tests/usb/main.swift -o /tmp/inferno-usb-tests
           /tmp/inferno-usb-tests
+      - name: Verify actual backend DMA range handling
+        run: |
+          git init /tmp/inferno-range-core
+          git -C /tmp/inferno-range-core remote add origin https://github.com/agent-ios-dev/Inferno.git
+          git -C /tmp/inferno-range-core fetch --depth 1 origin 503a4c2ec1cf8cf456f057e19d9a216b12e3ed51
+          git -C /tmp/inferno-range-core checkout --detach FETCH_HEAD
+          python3 tests/usb/dwc3-range.py /tmp/inferno-range-core/hw/usb/hcd-dwc3.c
       - name: Typecheck iOS and macOS shared sources
         run: |
           echo 'enum BuildInfo { static let stamp = "CI typecheck" }' > /tmp/InfernoBuildInfo.swift
