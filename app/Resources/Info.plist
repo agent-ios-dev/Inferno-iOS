@@ -14,7 +14,7 @@
     <key>CFBundleExecutable</key>
     <string>Inferno</string>
     <key>CFBundleIdentifier</key>
-    <string>com.makr.inferno</string>
+    <string>dev.agent-ios.inferno</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

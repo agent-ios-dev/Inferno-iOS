@@ -18,6 +18,11 @@ StikDebug must already have its pairing/VPN setup. The button requests
 the app repeats the real JIT availability check before proceeding. The app cannot
 create the host phone's debugger permissions itself.
 
+The fork uses `dev.agent-ios.inferno` (macOS: `dev.agent-ios.inferno.mac`),
+separate from the upstream app, to avoid replacing its existing guest/data.
+The StikDebug request uses the installed bundle identifier, including one
+changed by a sideloading tool.
+
 Allow 20 GiB of free host storage initially, and keep the app in the foreground.
 The IPSW is downloaded directly into the private restore directory, so a second
 multi-gigabyte copy is unnecessary. Completed downloads are reused; cancellation
