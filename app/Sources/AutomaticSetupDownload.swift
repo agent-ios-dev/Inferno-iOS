@@ -9,12 +9,15 @@ final class AutomaticSetupDownload: NSObject, URLSessionDownloadDelegate, @unche
     private var session: URLSession?
     private var task: URLSessionDownloadTask?
     private var result: Result<URL, Error>?
+    private let lock = NSLock()
+    private var lastProgress: TimeInterval = 0
 
     init(asset: AutomaticSetupProfile.Asset, destination: URL, progress: @escaping @Sendable (Double) -> Void) {
         self.asset = asset; self.destination = destination; self.progress = progress
     }
     func run() async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
+            lock.lock()
             self.continuation = continuation
             let config = URLSessionConfiguration.default
             config.timeoutIntervalForRequest = 120
@@ -25,10 +28,16 @@ final class AutomaticSetupDownload: NSObject, URLSessionDownloadDelegate, @unche
             var request = URLRequest(url: asset.url)
             request.setValue("Inferno-iOS-AutoSetup/1.0", forHTTPHeaderField: "User-Agent")
             request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
-            task = session.downloadTask(with: request); task?.resume()
+            let transfer = session.downloadTask(with: request)
+            task = transfer
+            lock.unlock()
+            transfer.resume()
         }
     }
-    func cancel() { task?.cancel() }
+    func cancel() {
+        lock.lock(); let transfer = task; lock.unlock()
+        transfer?.cancel()
+    }
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
         completionHandler(request.url.map(AutomaticSetupProfile.permits) == true ? request : nil)
@@ -36,7 +45,11 @@ final class AutomaticSetupDownload: NSObject, URLSessionDownloadDelegate, @unche
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64,
                     totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         if totalBytesWritten > asset.bytes { downloadTask.cancel(); return }
-        progress(min(1, Double(totalBytesWritten) / Double(asset.bytes)))
+        let now = Date.timeIntervalSinceReferenceDate
+        if now - lastProgress >= 0.15 || totalBytesWritten == asset.bytes {
+            lastProgress = now
+            progress(min(1, Double(totalBytesWritten) / Double(asset.bytes)))
+        }
     }
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         do {
@@ -49,7 +62,11 @@ final class AutomaticSetupDownload: NSObject, URLSessionDownloadDelegate, @unche
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         let outcome = error.map { Result<URL, Error>.failure($0) } ?? result ?? .failure(URLError(.unknown))
-        continuation?.resume(with: outcome); continuation = nil
-        session.finishTasksAndInvalidate(); self.session = nil; self.task = nil
+        lock.lock()
+        let waiting = continuation; continuation = nil
+        self.session = nil; self.task = nil
+        lock.unlock()
+        session.finishTasksAndInvalidate()
+        waiting?.resume(with: outcome)
     }
 }

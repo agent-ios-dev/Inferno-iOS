@@ -82,7 +82,7 @@ import UIKit
                         try RestorePrep.prepare(.init(ipsw: firmware, shsh2: ticket, sepROM: rom,
                             sepKey: AutomaticSetupProfile.sepKey, cryptexTemplate: nil), note: { note in
                                 LogCapture.shared.note(note)
-                                Task { @MainActor in self?.message = note }
+                                Task { @MainActor in if self?.busy == true { self?.message = note } }
                             }, progress: { value in Task { @MainActor in self?.fraction = value } })
                     }.value
                     defaults.set(AutomaticSetupProfile.id, forKey: "automaticSetupPrepared")

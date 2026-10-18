@@ -49,7 +49,7 @@ CMAKE_TRY_COMPILE_TARGET_TYPE = 'STATIC_LIBRARY'
 c_args        = [$FLAGS, '-I$PREFIX/include']
 c_link_args   = [$FLAGS, '-L$PREFIX/lib', '-framework', 'CoreFoundation', '-lucontext']
 cpp_args      = [$FLAGS]
-cpp_link_args = [$FLAGS]
+cpp_link_args = [$FLAGS, '-L$PREFIX/lib', '-framework', 'CoreFoundation', '-lucontext']
 objc_args     = [$FLAGS]
 # Needed as soon as one Objective-C file joins a target: meson then links
 # that target with the Objective-C linker, and an empty list here means
