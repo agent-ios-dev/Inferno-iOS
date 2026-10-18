@@ -5,6 +5,7 @@ import CoreGraphics
 @main struct RestoreSmoke {
     @MainActor static func main() {
         Bootstrap.prepareDocuments()
+        let publicProgress = FileHandle(fileDescriptor: dup(STDOUT_FILENO), closeOnDealloc: true)
         LogCapture.shared.start()
         Settings.shared.virtualization = false
         Settings.shared.memory = "3G"
@@ -19,6 +20,7 @@ import CoreGraphics
         func report(_ reason: String) {
             var report: [String: Any] = ["profile": AutomaticSetupProfile.id, "reason": reason,
                 "seconds": Int(Date().timeIntervalSince(started)), "setup_pending": setup.pending,
+                "setup_message": setup.message,
                 "machine_running": model.isRunning, "guest_frame_received": model.picture.image != nil,
                 "visible_springboard_confirmed": false, "physical_iphone_confirmed": false]
             if let image = model.picture.image {
@@ -38,8 +40,7 @@ import CoreGraphics
                     // No console, firmware bytes, SEP key values or raw memory
                     // leave this runner. Progress is app-owned text only.
                     lastMessage = setup.message
-                    print("Automatic restore: \(lastMessage)")
-                    fflush(stdout)
+                    try? publicProgress.write(contentsOf: Data("Automatic restore: \(lastMessage)\n".utf8))
                 }
                 if setup.message.hasPrefix("Автонастройка остановлена:") {
                     report("automatic setup failed")

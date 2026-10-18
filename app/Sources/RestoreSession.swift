@@ -122,6 +122,11 @@ final class RestoreSession: ObservableObject {
             return
         }
 
+        let preparedRamdisk = RestoreSession.bootRamdisk(ramdisk)
+        guard !keepRunningForSystemBoot || preparedRamdisk != ramdisk else {
+            set(.failed("Не удалось встроить обязательный патчер. Диск не стёрт; восстановление не запущено."))
+            return
+        }
         set(.booting)
         LogCapture.shared.note(L("Рестор: RAM-диск %@", ramdisk.lastPathComponent))
 
@@ -156,7 +161,7 @@ final class RestoreSession: ObservableObject {
         var config = Settings.shared.config
         // Not the stock ramdisk: the one carrying the patcher, made here if
         // it is not made yet.
-        config.restoreRamdiskPath = RestoreSession.bootRamdisk(ramdisk).path
+        config.restoreRamdiskPath = preparedRamdisk.path
         // Memory and the translation buffer are left as the person set them.
         // A gigabyte is not enough, by the way — tried on the rig, and the
         // guest's watchdog resets the machine before ASR even starts.
