@@ -124,6 +124,10 @@ volume. Host also classifies restored port FIN vs RST. Do not treat a closed
 channel as restore success or change volume paths until evidence supports it.
 Backend stays **d1fb886**, shipping IPA still **37d6816**.
 
+Active volume-mask restore: **39176850488**, app **9a01fe2**, backend
+**d1fb886**. Verification **39176753029** running at dispatch. Inspect these
+before dispatching another test; do not duplicate this restore.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
