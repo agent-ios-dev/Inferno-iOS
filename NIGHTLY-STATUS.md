@@ -82,9 +82,18 @@ No new production IPA is built; normal guest boot remains untested.
 
 Active timeout-position restore: **39166127705**, app **8fe6e21**, backend
 **d1fb886** unchanged. Check this exact run before another restore.
-Verification **39165968632** already passed real USB socket tests (including
-IN error propagation) and real C DMA/DART tests; platform typechecks were
-still running at this checkpoint. Save its final result as well.
+Verification **39165968632 passed**, including real USB socket tests (IN error
+propagation), real C DMA/DART tests and platform typechecks.
+
+Live Actions inspection at **21:59 UTC**: **39166127705** is still running,
+but it has progressed through System image 95%, System 100%, Installing 100%,
+Device tree, and now **Filesystem patches 95%**. Do not cancel or duplicate
+this run while the existing one-hour patcher deadline is still active.
+This is not yet a completed restore/reset or a booted SpringBoard.
+The next harness revision adds fixed patcher-phase booleans to its final
+report (waiting, data ready, mount, cache patch start/exit, failed/done),
+without publishing patch addresses or raw console lines. This revision does
+not affect the already-running restore; inspect its actual result first.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
