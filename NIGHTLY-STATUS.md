@@ -39,6 +39,10 @@ guest addresses or buffer contents; DMA failure is still returned. This tests
 the stale-prefetched-TRB hypothesis without treating it as proven. Default
 nightly backend is now **06010cc**; production still **37d6816**.
 
+Active at checkpoint: **39163372932**, app **ee8d1d6**, backend **06010cc**,
+started about 20:29 UTC on 18 October. Inspect its result and the verification
+on the same app commit before scheduling another restore. Do not duplicate it.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
