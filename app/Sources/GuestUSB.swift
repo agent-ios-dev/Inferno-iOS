@@ -628,6 +628,10 @@ final class GuestUSB {
     private var channels: [UInt16: Channel] = [:]
     private var nextLocalPort: UInt16 = 0xF001
     private let muxLock = NSLock()
+    // Reading a frame and updating its channel must be one ordered operation.
+    // The pump and a synchronous reader otherwise remove consecutive frames
+    // in order but apply their sequence/ACK updates in the opposite order.
+    private let serviceLock = NSRecursiveLock()
 
     /// Opens a connection to a port on the guest. Blocks until the guest
     /// answers, which during a restore can be a while.
@@ -683,6 +687,7 @@ final class GuestUSB {
     /// 200 ms to notice it had reopened held the transfer to half a megabyte a
     /// second.
     private func serviceMux(timeout: TimeInterval) throws {
+        serviceLock.lock(); defer { serviceLock.unlock() }
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             // An empty read is the normal answer on a quiet link, and asking
@@ -711,8 +716,12 @@ final class GuestUSB {
             muxLock.lock()
             channel.peerWindow = Int(u16be(body, 14)) << 8
             if flags & 0x10 != 0 {
-                if acknowledged != channel.txAcked { lastProgress = Date() }
-                channel.txAcked = acknowledged
+                let advance = acknowledged &- channel.txAcked
+                let outstanding = channel.txSeq &- channel.txAcked
+                if advance > 0 && advance <= outstanding {
+                    lastProgress = Date()
+                    channel.txAcked = acknowledged
+                }
             }
             muxLock.unlock()
 
@@ -723,9 +732,14 @@ final class GuestUSB {
             }
             if !payload.isEmpty {
                 muxLock.lock()
-                channel.txAck = sequence &+ UInt32(payload.count)
-                channel.inbox += payload
-                lastProgress = Date()
+                let skipped = Int(Int32(bitPattern: channel.txAck &- sequence))
+                // Retransmitted bytes must never be delivered twice. A gap
+                // leaves our cumulative ACK unchanged and requests a retry.
+                if skipped >= 0 && skipped < payload.count {
+                    channel.inbox += payload.dropFirst(skipped)
+                    channel.txAck = sequence &+ UInt32(payload.count)
+                    lastProgress = Date()
+                }
                 muxLock.unlock()
                 try sendTcp(channel, flags: 0x10)
             }
