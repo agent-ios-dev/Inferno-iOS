@@ -848,7 +848,12 @@ final class GuestUSB {
     private func pump() {
         var lastNote = Date.distantPast
         while link >= 0 {
-            do { try serviceMux(timeout: 0.2) }
+            do {
+                try serviceMux(timeout: 0.2)
+                // Let synchronous restored/ASR readers acquire serviceLock;
+                // repeatedly reacquiring it here can starve them indefinitely.
+                Thread.sleep(forTimeInterval: 0.001)
+            }
             catch Failure.gone { break }
             catch {
                 // Anything short of the link closing is survivable, and this
