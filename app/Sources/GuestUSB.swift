@@ -305,6 +305,10 @@ final class GuestUSB {
                     break
                 }
                 guard status == 0 else { throw Failure.usb("status \(status)") }
+                // DWC3 may retire a zero-length guest descriptor without
+                // consuming our OUT packet. Nothing arrived, so retry it just
+                // like NAK instead of silently discarding the whole packet.
+                if token == .tokenOut && endpoint != 0 && want > 0 && length == 0 { break }
                 if token != .tokenIn && length != want {
                     throw Failure.usb("incomplete OUT transfer (\(length)/\(want))")
                 }

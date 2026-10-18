@@ -33,7 +33,7 @@ func verify(_ size: Int, truncate: Bool = false) throws {
     let done = DispatchSemaphore(value: 0)
     DispatchQueue.global().async {
         defer { Darwin.close(peer); done.signal() }
-        var received: [UInt8] = [], refusedOnce = false
+        var received: [UInt8] = [], outAttempts = 0
         while let request = readExactly(peer, 23) {
             precondition(request[0] == 1)
             let wanted = Int(request[21]) | Int(request[22]) << 8
@@ -41,16 +41,18 @@ func verify(_ size: Int, truncate: Bool = false) throws {
             let payload = incoming ? [] : (readExactly(peer, wanted) ?? [])
             // Model a descriptor accepting a short prefix of an oversized OUT.
             // This exposed the old transport's silent loss of the suffix.
-            let accepted = incoming ? 0 : min(wanted, truncate ? 1 : 512)
-            let nak = incoming || !refusedOnce
-            if !incoming && !refusedOnce { refusedOnce = true }
+            if !incoming { outAttempts += 1 }
+            // First NAK, then SUCCESS with zero consumed bytes: both must
+            // retry the same payload. A later short positive result must fail.
+            let accepted = incoming || outAttempts == 2 ? 0 : min(wanted, truncate ? 1 : 512)
+            let nak = incoming || outAttempts == 1
             var reply: [UInt8] = [2, request[1]]
             reply += Array(request[2..<6]) + [request[6]] + Array(request[7..<15])
             reply += nak ? [254, 255, 255, 255] : [0, 0, 0, 0]
             reply += nak ? [0, 0] : [UInt8(accepted & 255), UInt8(accepted >> 8)]
             writeAll(peer, reply)
             if !nak { received += payload.prefix(accepted) }
-            if truncate && !nak { return }
+            if truncate && !nak && accepted > 0 { return }
             if received.count == expected.count {
                 precondition(received == expected, "USB OUT bytes were lost or duplicated")
                 return
