@@ -80,6 +80,12 @@ this test. Before a transport rewrite, distinguish timeout before a frame from
 timeout midway through it, and check whether IN data is stuck awaiting TCP ACK.
 No new production IPA is built; normal guest boot remains untested.
 
+Active timeout-position restore: **39166127705**, app **8fe6e21**, backend
+**d1fb886** unchanged. Check this exact run before another restore.
+Verification **39165968632** already passed real USB socket tests (including
+IN error propagation) and real C DMA/DART tests; platform typechecks were
+still running at this checkpoint. Save its final result as well.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
