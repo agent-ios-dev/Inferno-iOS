@@ -23,6 +23,8 @@ def main():
                       help='Boot patched ramdisk on an installed disk; never run erase/restore')
     parser.add_argument('--ssc-status-diagnostics', action='store_true',
                         help='Bounded SEP controller command/result counters; diagnostic backend required')
+    parser.add_argument('--cores', type=int, choices=range(2, 8), default=7,
+                        help='Total virtual cores including SEP; 2 isolates single-AP boot')
     args = parser.parse_args()
     root = Path('/vm')
     data = root / 'InfernoData'
@@ -50,7 +52,7 @@ def main():
         '-kernel', str(data / 'Restore' / prepared['kernel']),
         '-dtb', str(data / 'Restore' / prepared['device_tree']),
         '-append', ('rd=md0 ' if args.patch_only else '') + 'tlto_us=-1 agm-genuine=1 agm-authentic=1 agm-trusted=1 serial=3 wdt=-1 launchd_unsecure_cache=1 -vm_compressor_wk_sw',
-        '-smp', '7', '-m', '3G', '-accel', 'tcg,thread=multi',
+        '-smp', str(args.cores), '-m', '3G', '-accel', 'tcg,thread=multi',
         '-display', 'none', '-vnc', '0.0.0.0:0',
         '-qmp', 'tcp:0.0.0.0:4444,server=on,wait=off',
         '-chardev', 'socket,id=serial0,host=0.0.0.0,port=5555,server=on,wait=off,logfile=' + str(logs / 'guest-console.log'),
