@@ -6,6 +6,10 @@ stage/
 airdrop/
 transfer/
 InfernoData/
+# Private installed-machine transfer archives, never source artifacts.
+Inferno-Machine*.zip
+*.inferno-vm.zip
+*.inferno-vm-candidate.zip
 AppleSEPROM-*
 *.im4p
 *.img4
