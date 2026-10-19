@@ -5,6 +5,7 @@ The HFS+ implementation itself remains identical to the tested app source.
 """
 import argparse
 from pathlib import Path
+import shutil
 import zipfile
 
 
@@ -60,5 +61,13 @@ if __name__ == '__main__':
     parser.add_argument('ipa', type=Path)
     parser.add_argument('output', type=Path)
     parser.add_argument('--patch-only', action='store_true')
+    parser.add_argument('--recovery-daemon', type=Path,
+                        help='Explicit experimental signed guest helper; requires --patch-only')
     args = parser.parse_args()
     generate(args.app, args.ipa, args.output, args.patch_only)
+    if args.recovery_daemon:
+        if not args.patch_only:
+            raise ValueError('Recovery daemon override requires patch-only mode')
+        if args.recovery_daemon.read_bytes()[:4] != b'\xcf\xfa\xed\xfe':
+            raise ValueError('Recovery daemon is not a 64-bit Mach-O')
+        shutil.copyfile(args.recovery_daemon, args.output / 'guest/inferno_patcher')

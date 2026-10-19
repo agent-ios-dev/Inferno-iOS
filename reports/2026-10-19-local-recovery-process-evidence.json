@@ -1,0 +1,17 @@
+{
+  "source": "read-only paused live exact-kernel process hash",
+  "layout_validated_against_live_kernel_task_and_launchd": true,
+  "snapshot_phase": "patch-only ramdisk after dyld patcher exit zero",
+  "processes": [
+    {"pid": 0, "name": "kernel_task"},
+    {"pid": 1, "name": "launchd"},
+    {"pid": 4, "name": "JCOP-01.30-006-P"},
+    {"pid": 8, "name": "mount_apfs"}
+  ],
+  "springboard_seen": false,
+  "backboardd_seen": false,
+  "raw_memory_saved": false,
+  "guest_writes_from_probe": false,
+  "vm_resumed_after_probe": true,
+  "finding": "Service setup waiting on Data volume mount after shared-cache patches applied"
+}
