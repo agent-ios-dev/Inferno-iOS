@@ -562,6 +562,12 @@ final class GuestUSB {
                     let buffered = inbound.count
                     recvLock.unlock()
                     LogCapture.shared.note("USB-OUT-NAK: frame_offset=\(frameOffset) frame_length=\(frameLength ?? packet.count) buffered_in=\(buffered)")
+                    muxLock.lock()
+                    let states = channels.values.sorted { $0.localPort < $1.localPort }.prefix(8).map {
+                        "USB-OUT-TCP: port=\($0.remotePort) window=\($0.peerWindow) inflight=\($0.txSeq &- $0.txAcked) received=\($0.inbox.count) closed=\($0.closed ? 1 : 0)"
+                    }
+                    muxLock.unlock()
+                    for state in states { LogCapture.shared.note(state) }
                     throw Failure.usb("OUT NAK timeout, frame offset \(frameOffset)/\(frameLength ?? packet.count), buffered IN \(buffered)")
                 }
                 try drainIn()

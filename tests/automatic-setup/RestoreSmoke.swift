@@ -146,6 +146,33 @@ import CoreGraphics
                 }
                 report["failed_out_descriptor"] = counters
             }
+            // Fixed controller counters only; never export raw emulator lines.
+            let tcpPattern = "USB-OUT-TCP: port=([0-9]+) window=([0-9]+) inflight=([0-9]+) received=([0-9]+) closed=([0-9]+)"
+            if let regex = try? NSRegularExpression(pattern: tcpPattern) {
+                report["out_nak_tcp_states"] = regex.matches(in: hostLog,
+                    range: NSRange(hostLog.startIndex..., in: hostLog)).suffix(8).map { match in
+                    var state: [String: Int] = [:]
+                    for (index, key) in ["port", "window", "inflight", "received", "closed"].enumerated() {
+                        if let range = Range(match.range(at: index + 1), in: hostLog), let value = Int(hostLog[range]) {
+                            state[key] = value
+                        }
+                    }
+                    return state
+                }
+            }
+            let nakPattern = "DWC3-OUT-NAK: ep=([0-9]+) enabled=([0-9]+) transfer=([0-9]+) buffers=([0-9]+) free=([0-9]+) control=([0-9]+) events=([0-9]+) pending=([0-9]+)"
+            if let regex = try? NSRegularExpression(pattern: nakPattern) {
+                report["out_nak_controller_states"] = regex.matches(in: hostLog,
+                    range: NSRange(hostLog.startIndex..., in: hostLog)).suffix(8).map { match in
+                    var state: [String: Int] = [:]
+                    for (index, key) in ["endpoint", "enabled", "transfer", "buffers", "can_free", "control", "events", "pending"].enumerated() {
+                        if let range = Range(match.range(at: index + 1), in: hostLog), let value = Int(hostLog[range]) {
+                            state[key] = value
+                        }
+                    }
+                    return state
+                }
+            }
             if let image = model.picture.image {
                 let path = output.appendingPathComponent("guest-screen.png")
                 if let writer = CGImageDestinationCreateWithURL(path as CFURL, "public.png" as CFString, 1, nil) {

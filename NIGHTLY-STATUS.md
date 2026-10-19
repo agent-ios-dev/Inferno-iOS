@@ -236,3 +236,20 @@ guest firmware/disks off GitHub artifacts.
 Local checkouts: sibling folders `Inferno-iOS` and `Inferno-core`. No input
 from the user is presently required. Nightly continuation is attached to this
 chat every 15 minutes until 09:00 Moscow on 19 October 2026.
+
+04:43 UTC: restore **39195127679 failed**, app **f1c6fa7**, backend
+**d1fb886**, at fraction 0.489443 / 3775 seconds. OUT NAK at frame byte
+0/16383, buffered IN 0. ASR validated but payload incomplete. No guest panic,
+DART access fault, checksum failure or mux sequence error. Patcher remains
+waiting; data volume absent. Verification **39194983695 passed** completely.
+The new serialization has NOT fixed restoration; no production promotion.
+
+Next diagnostic backend **e18bd7b** adds only a saturating per-endpoint OUT
+NAK counter: once per 1024 consecutive refusals, records endpoint enabled,
+transfer present, descriptor count, can-free, control phase, event mask and
+pending event byte count. It changes no events, ownership, DMA, retry or
+completion behavior. Host timeout records fixed TCP window/inflight/inbox
+counters. Harness exports at most eight numeric snapshots per category; no
+addresses, payload, firmware or raw guest logs. This distinguishes missing
+transfer resources from disabled endpoints or undrained completion events,
+before making another behavioral change. Shipping backend stays **37d6816**.
