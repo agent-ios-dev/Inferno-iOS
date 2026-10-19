@@ -21,6 +21,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('vm', type=Path)
     parser.add_argument('--handoff', action='store_true')
+    parser.add_argument('--patch-only', action='store_true',
+                        help='Observe the separate recovery boot after a completed restore')
     args = parser.parse_args()
     report = args.vm / 'local-restore-observation.json'
     if report.exists() and json.loads(report.read_text()).get('handoff_completed'):
@@ -31,7 +33,7 @@ def main():
     last = None
     deadline = time.monotonic() + 4 * 3600
     while time.monotonic() < deadline:
-        console = tail(args.vm / 'restore-logs/guest-console.log')
+        console = tail(args.vm / ('patch-only-logs' if args.patch_only else 'restore-logs') / 'guest-console.log')
         client = tail(args.vm / 'restore-logs/idevicerestore.log')
         values = re.findall(r'ASR RESTORE PROGRESS: (\d+)%', console)
         if values:
@@ -42,7 +44,7 @@ def main():
             state['failure'] = 'Guest filesystem patcher failed; inspect private log'
         if 'panic(cpu' in console:
             state['failure'] = 'Guest kernel panic; inspect private log'
-        if state['restore_completed'] and state['filesystem_patcher_completed']:
+        if 'failure' not in state and state['restore_completed'] and state['filesystem_patcher_completed']:
             if args.handoff:
                 for name, arguments in [
                     ('stop', None),

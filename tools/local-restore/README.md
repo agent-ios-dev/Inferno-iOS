@@ -73,3 +73,12 @@ the QMP callback BQL fix survived ten such requests with status `prelaunch`.
 It preserves the failed VM, is not a clone of an installed machine, and refuses
 an existing destination. On Windows it uses native sparse EOF operations;
 the CRT truncate extension would instead zero-fill gigabytes unnecessarily.
+
+`run.py --patch-only` is an installed-disk recovery experiment. It requires the
+previous client log to contain `Status: Restore Finished`, attaches the patched
+RAM disk, and never starts idevicerestore or sends an erase request. Preserve a
+consistent stopped-disk backup first. Its separate `patch-only-logs` keep the
+original restore evidence intact. Observe using `watch.py VM --patch-only
+--handoff`; the handoff requires prior restore completion and current explicit
+patcher success, and is blocked by any current panic/failure. A successful
+restore alone does not prove filesystem patching or normal iOS startup.

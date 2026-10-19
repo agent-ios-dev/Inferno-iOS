@@ -17,23 +17,31 @@ import time
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--restore', action='store_true')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--restore', action='store_true')
+    mode.add_argument('--patch-only', action='store_true',
+                      help='Boot patched ramdisk on an installed disk; never run erase/restore')
     args = parser.parse_args()
     root = Path('/vm')
     data = root / 'InfernoData'
     prepared = json.loads((root / 'prepare.json').read_text())
     if not (root / 'qemu-data/keymaps/en-us').is_file():
         raise ValueError('VNC keymaps missing from prepared VM inputs')
-    logs = root / ('restore-logs' if args.restore else 'boot-logs')
+    recovery = args.restore or args.patch_only
+    if args.patch_only:
+        completed = root / 'restore-logs/idevicerestore.log'
+        if not completed.is_file() or 'Status: Restore Finished' not in completed.read_text(errors='replace'):
+            raise ValueError('Patch-only recovery requires recorded successful restore')
+    logs = root / ('patch-only-logs' if args.patch_only else 'restore-logs' if args.restore else 'boot-logs')
     logs.mkdir(exist_ok=True)
-    if args.restore and not (root / 'patched-ramdisk.im4p').is_file():
+    if recovery and not (root / 'patched-ramdisk.im4p').is_file():
         raise ValueError('Patched restore ramdisk missing')
     machine = ['t8030', 'usb-uplink-type=inferno', 'usb-uplink-addr=unix:/tmp/iusb.sock',
         'trustcache=' + str(data / 'Restore' / prepared['trustcache']),
         'ticket=' + str(data / 'root_ticket.der'),
         'sep-fw=' + str(data / 'sep-firmware.n104.RELEASE.new.img4'),
         'sep-rom=' + str(root / 'AppleSEPROM-Cebu-B1'), 'kaslr-off=true',
-        'boot-mode=' + ('enter_recovery' if args.restore else 'exit_recovery'),
+        'boot-mode=' + ('enter_recovery' if recovery else 'exit_recovery'),
         'disp-width=828', 'disp-height=1792', 'disp-scale=2']
     command = ['qemu-system-aarch64', '-L', '/vm/qemu-data', '-M', ','.join(machine),
         '-kernel', str(data / 'Restore' / prepared['kernel']),
@@ -53,7 +61,7 @@ def main():
             '-device', f'nvme-ns,drive={name},bus=nvme-bus.0,nsid={nsid},nstype={nstype},logical_block_size=4096,physical_block_size=4096']
     command += ['-drive', f'file={data / "nvram"},if=none,format=raw,id=nvram',
         '-device', 'apple-nvram,drive=nvram,bus=nvme-bus.0,nsid=5,nstype=5,id=nvram,logical_block_size=4096,physical_block_size=4096']
-    if args.restore:
+    if recovery:
         command += ['-initrd', str(root / 'patched-ramdisk.im4p'),
             '-global', 'driver=apple-smc,property=hold-reset,value=on']
     children = []
@@ -87,7 +95,8 @@ def main():
             time.sleep(0.1)
         qemu = start(command, 'qemu.log', cwd=root)
         (logs / 'host-status.json').write_text(json.dumps({'qemu_pid': qemu.pid,
-            'restore_requested': args.restore, 'springboard_confirmed': False}))
+            'restore_requested': args.restore, 'patch_only_requested': args.patch_only,
+            'springboard_confirmed': False}))
         if args.restore:
             # The guest has to finish booting and USB enumeration first.
             # idevicerestore otherwise exits before a device can be discovered.

@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-19",
+  "backend_commit": "87af92296132800974511dc1d049929d4bafc9e2",
+  "runtime_image": "inferno-local:qmp-test",
+  "actual_guest_execution": true,
+  "restore_client_finished": true,
+  "asr_write_percent": 100,
+  "asr_verify_percent": 100,
+  "filesystem_patcher_started": true,
+  "filesystem_patcher_finished": false,
+  "failure": "Halt/Restart Timed Out after restored_external requested reboot during filesystem patcher analysis",
+  "evidence": "Private local restore logs; final Status: Restore Finished and DONE, then guest patcher mount success and explicit shutdown initiation followed by panic",
+  "springboard_confirmed": false,
+  "backboardd_confirmed": false,
+  "visible_ios_ui_confirmed": false,
+  "production_backend_changed": false,
+  "next_experiment": "Separate patched-ramdisk boot of installed disks, without erase or restore client; preserve stopped-disk backup first"
+}
