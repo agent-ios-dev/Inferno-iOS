@@ -1,11 +1,15 @@
 """Send one explicit QMP command to the local experiment; no implicit reset."""
 import argparse
 import json
+import os
 import socket
 
 
 def execute(command, arguments=None):
-    with socket.create_connection(('127.0.0.1', 4444), timeout=15) as sock:
+    port = int(os.environ.get('INFERNO_QMP_PORT', '4444'))
+    if not 1 <= port <= 65535:
+        raise ValueError('Invalid local QMP port')
+    with socket.create_connection(('127.0.0.1', port), timeout=15) as sock:
         stream = sock.makefile('rwb')
         if 'QMP' not in json.loads(stream.readline()):
             raise RuntimeError('Missing QMP greeting')

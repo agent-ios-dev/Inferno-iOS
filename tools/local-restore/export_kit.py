@@ -24,8 +24,11 @@ def export(vm, destination, proof_path, image):
     vm = vm.resolve(strict=True)
     destination = destination.resolve()
     proof = json.loads(proof_path.read_text())
+    if not (proof.get('visible_springboard_confirmed') is True or
+            proof.get('visible_setup_confirmed') is True):
+        raise ValueError('A real guest UI must be visually confirmed')
     if not all(proof.get(key) is True for key in (
-        'visible_springboard_confirmed', 'backboardd_process_seen',
+        'springboard_process_seen', 'backboardd_process_seen',
         'cold_boot_without_restore_confirmed')):
         raise ValueError('Visible working UI and separate cold boot are not confirmed')
     if not re.fullmatch(r'[0-9a-f]{40}', proof.get('backend_commit', '')):
@@ -63,11 +66,15 @@ def export(vm, destination, proof_path, image):
         if Path(value).is_absolute() or '..' in Path(value).parts or '\\' in value:
             raise ValueError('Unsafe boot component path')
         files.append('InfernoData/Restore/' + value)
-    for name in [*files, 'InfernoData/root']:
+    root_name = 'root.qcow2' if (vm / 'InfernoData/root.qcow2').is_file() else 'root'
+    root_format = 'qcow2' if root_name.endswith('.qcow2') else 'raw'
+    for name in [*files, 'InfernoData/' + root_name]:
         path = vm / name
         if path.resolve(strict=True) != path.absolute() or not path.is_file():
             raise ValueError('Missing regular VM input: ' + name)
     for name, size in DISKS.items():
+        if name == 'root' and root_format == 'qcow2':
+            continue
         if (vm / 'InfernoData' / name).stat().st_size != size:
             raise ValueError('Unexpected disk size: ' + name)
     destination.mkdir(parents=True)
@@ -76,11 +83,15 @@ def export(vm, destination, proof_path, image):
               '--mount', f'type=bind,source={vm},target=/source,readonly',
               '--mount', f'type=bind,source={destination},target=/output', image,
               '/opt/inferno/build/qemu-img']
-    subprocess.run([*docker, 'convert', '-p', '-f', 'raw', '-O', 'qcow2', '-c',
-                    '/source/InfernoData/root', '/output/InfernoData/root.qcow2'], check=True)
+    root_source = '/source/InfernoData/' + root_name
+    info = json.loads(subprocess.check_output([*docker, 'info', '--output=json', root_source], text=True))
+    if info.get('format') != root_format or info.get('virtual-size') != DISKS['root'] or info.get('backing-filename'):
+        raise ValueError('Root must be a standalone disk of the expected virtual size')
+    subprocess.run([*docker, 'convert', '-p', '-f', root_format, '-O', 'qcow2', '-c',
+                    root_source, '/output/InfernoData/root.qcow2'], check=True)
     subprocess.run([*docker, 'check', '-f', 'qcow2', '/output/InfernoData/root.qcow2'], check=True)
-    subprocess.run([*docker, 'compare', '-f', 'raw', '-F', 'qcow2',
-                    '/source/InfernoData/root', '/output/InfernoData/root.qcow2'], check=True)
+    subprocess.run([*docker, 'compare', '-f', root_format, '-F', 'qcow2',
+                    root_source, '/output/InfernoData/root.qcow2'], check=True)
     for name in files:
         target = destination / name
         target.parent.mkdir(parents=True, exist_ok=True)

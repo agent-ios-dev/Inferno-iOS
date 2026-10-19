@@ -66,7 +66,10 @@ def main():
         command += ['-global', 'driver=apple-sep.ssc,property=status-diagnostics,value=on']
     for name, nsid, nstype in [('root', 1, 1), ('firmware', 2, 2), ('syscfg', 3, 3),
                              ('ctrl_bits', 4, 4), ('effaceable', 6, 6), ('panic_log', 7, 8)]:
-        command += ['-drive', f'file={data / name},format=raw,if=none,id={name}',
+        qcow = name == 'root' and (data / 'root.qcow2').is_file()
+        disk = data / ('root.qcow2' if qcow else name)
+        disk_format = 'qcow2' if qcow else 'raw'
+        command += ['-drive', f'file={disk},format={disk_format},if=none,id={name}',
             '-device', f'nvme-ns,drive={name},bus=nvme-bus.0,nsid={nsid},nstype={nstype},logical_block_size=4096,physical_block_size=4096']
     command += ['-drive', f'file={data / "nvram"},if=none,format=raw,id=nvram',
         '-device', 'apple-nvram,drive=nvram,bus=nvme-bus.0,nsid=5,nstype=5,id=nvram,logical_block_size=4096,physical_block_size=4096']
