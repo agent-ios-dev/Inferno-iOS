@@ -160,12 +160,12 @@ import CoreGraphics
                     return state
                 }
             }
-            let nakPattern = "DWC3-OUT-NAK: ep=([0-9]+) enabled=([0-9]+) transfer=([0-9]+) buffers=([0-9]+) free=([0-9]+) control=([0-9]+) events=([0-9]+) pending=([0-9]+)"
+            let nakPattern = "DWC3-OUT-NAK: ep=([0-9]+) enabled=([0-9]+) transfer=([0-9]+) buffers=([0-9]+) free=([0-9]+) control=([0-9]+) events=([0-9]+) pending=([0-9]+) reason=([0-9]+) first=([0-9]+) trbs=([0-9]+) actual=([0-9]+) total=([0-9]+) naks=([0-9]+)"
             if let regex = try? NSRegularExpression(pattern: nakPattern) {
                 report["out_nak_controller_states"] = regex.matches(in: hostLog,
                     range: NSRange(hostLog.startIndex..., in: hostLog)).suffix(8).map { match in
                     var state: [String: Int] = [:]
-                    for (index, key) in ["endpoint", "enabled", "transfer", "buffers", "can_free", "control", "events", "pending"].enumerated() {
+                    for (index, key) in ["endpoint", "enabled", "transfer", "buffers", "can_free", "control", "events", "pending", "reason", "first", "trbs", "actual", "total", "naks"].enumerated() {
                         if let range = Range(match.range(at: index + 1), in: hostLog), let value = Int(hostLog[range]) {
                             state[key] = value
                         }

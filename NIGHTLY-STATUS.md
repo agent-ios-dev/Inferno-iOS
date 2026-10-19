@@ -261,3 +261,20 @@ At 04:51 UTC backend build has started. The preceding PNG was inspected:
 Apple logo with incomplete restore progress bar, no SpringBoard. This run
 adds observability, not a claimed behavioral fix. At the 06:00 UTC deadline
 preserve its actual state if it has not completed and stop the nightly schedule.
+
+05:13 UTC: **39201121932 failed** after 905 seconds at ASR 0.092748.
+No panic, DART access fault, checksum/mux error, FUD or patcher readiness.
+Verification **39201122368 passed**. Timeout TCP snapshot: ASR window114688,
+inflight0, inbox0, open; restored window131072/inflight0, open. Thus the final
+stall does not show an unacknowledged TCP window blocking the ASR writer.
+One controller snapshot: OUT ep4, enabled1, transfer1, buffers3, can_free0,
+control0, eventmask6, pending0. Its timing is not known: the old 1024-poll
+threshold could miss slow retries at the final stall; do not assert queue
+corruption from that earlier sample.
+
+Next backend **d5dcc2f** records the precise NAK branch (1 disabled endpoint,
+2 no transfer, 3 empty descriptor queue, 4 copy/status path) and first descriptor
+presence/count/actual/total, consecutive NAK count, at most every5 seconds.
+Only numeric metadata; no addresses or payload, no completion/event behavior
+changes. Harness retains last8 snapshots, so evidence covers the final stall.
+Keep shipping backend **37d6816**. No full restore/SpringBoard confirmed.
