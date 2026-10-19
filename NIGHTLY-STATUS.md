@@ -380,3 +380,19 @@ specific consent. This does not block the active public JSON/PNG-only restore.
 The active CLI watcher is session59928 (gh run watch39237004400), redirects
 routine status to local work/restore-watch-39237004400.txt. Keep waiting for its
 actual result; do not treat pending private storage consent as a boot blocker.
+
+Private-retention preparation **e7091d4** is source-only inside the existing
+approved app repo, not a newly created repo or deployed workflow. Template
+`tools/private-delivery/capture.yml` gates on private visibility, rechecks before
+capture/upload, uses immutable source refs and retains candidate artifacts3days.
+`capture_candidate.py` requires completed restoration and an exited emulator;
+it saves standalone QCOW2 + all consistent state as format0/Candidate.json,
+explicitly UNVERIFIED. Ready-kit verifier rejects it. Promotion and actual
+private deployment remain outstanding and require the pending specific consent.
+No actual private VM capture occurred, no new restore dispatched.
+Verification **39244791312 passed**: all11 synthetic-fixture tests on Mac,
+including real qemu-img conversion for both ready-kit/candidate paths, incomplete
+restore rejection and rejection of a candidate as a ready kit; private template
+YAML parsed. Existing transport/DMA/DART/platform checks passed too. Local
+Windows passed8, skipped3 unavailable qemu-img/symlink tests. Runtime `app/`
+is byte-for-byte unchanged from active full restore **a2a81f2** (`git diff` checked).
