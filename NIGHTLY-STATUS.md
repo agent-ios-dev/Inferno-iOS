@@ -528,3 +528,11 @@ app **10ef170939c0abbfbc73e29291fc843719d5e3e3**, backend
 Repo rechecked private. Watcher session83242 redirects routine state to
 work/private-watch-39251197224.txt. Inspect this run, do not duplicate it.
 All three worktrees were clean at resume. Old production backend remains pinned.
+
+At15:33Moscow the resumed native library/app builds passed and actual ASR image
+transfer reached5%. Still no normal UI evidence. A proposed early iPhone IPA
+compile dispatch was REJECTED by automatic approval review: IPA build must wait
+for the user's prerequisite of real restore and SpringBoard/backboardd/UI proof.
+Nothing in that command executed. Do not retry an early IPA build or route around
+the rejection through an equivalent workflow. This does not affect the running
+private restore39251197224; continue it. No early IPA was built or delivered.
