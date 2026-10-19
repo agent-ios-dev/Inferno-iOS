@@ -204,6 +204,25 @@ event. App **bb0baf1** returns immediately after RST. Verification
 harness typechecks, guest daemon check. Active full restore **39192852048**,
 exact app **bb0baf1**, backend **d1fb886**. Do not duplicate this run.
 
+Update: **39192852048 failed** at 745 seconds, ASR fraction 0.080214,
+OUT NAK offset 0/16383, IN buffered 0. No DART/panic/mux error, FUD not reached.
+
+App **f1c6fa7** changes the serialization model, rather than restoring the
+rejected ACK queue. serviceMux first owns sendLock, then serviceLock, matching
+writers; TCP txSeq/pending bytes publish after the actual frame send while
+that common gate is still held. A NAK at frame byte zero may service a whole
+buffered incoming mux frame (with the reserved mux number handed back), then
+rebuild the unsent frame header. A partial frame is never interrupted/replayed.
+Nested pure ACK uses the old *transmitted* TCP sequence, not the future data
+sequence. New real socket test checks incoming byte -> ACK sequence 0, ack 2,
+mux 0 -> unchanged payload under mux 1 and final data seq 100.
+Regression step passed in **39194983695**, full typechecks still pending.
+Backend remains **d1fb886**; shipping IPA **37d6816**, no release promotion.
+
+Active serialized-transport restore **39195127679**, app **f1c6fa7**, backend
+**d1fb886**. Inspect this result and final verification **39194983695** before
+dispatching a replacement. Do not duplicate the active test.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
