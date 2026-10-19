@@ -8,7 +8,13 @@
     "meson.build"
   ],
   "runtime_C_and_CXX_sources_unchanged": true,
-  "replacement_build": 39303785963,
-  "replacement_status": "in_progress",
-  "physical_iphone_jit_execution_verified": false
+  "replacement_build": 39305352448,
+  "replacement_status": "success",
+  "physical_iphone_jit_execution_verified": false,
+  "ipa_app_commit": "e57a9bd0715564415f831774c14aa2e677ff1707",
+  "ipa_sha256": "688fcd4505c4f7cbda8cc5694b80bd002c389e42574065d8232b21d9350de997",
+  "ipa_bytes": 5145837,
+  "local_archive_crc_and_arm64_checked": true,
+  "guest_skip_setup_confirmed": false,
+  "cold_boot_copy_ui_confirmed": false
 }
