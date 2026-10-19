@@ -9,6 +9,21 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Probe actual Mac HVF VM and vCPU capability without running guest code
+        run: |
+          xcrun clang -target arm64-apple-macos15.0 -Wall -Wextra tests/automatic-setup/hvf-probe.c -framework Hypervisor -o /tmp/inferno-hvf-probe
+          codesign -f -s - --entitlements app/Resources/entitlements-macos.plist /tmp/inferno-hvf-probe
+          if /tmp/inferno-hvf-probe > host-hvf-probe.json; then
+            python3 -c 'import json; print(json.load(open("host-hvf-probe.json")))'
+          else
+            probe_exit=$?
+            echo "{\"available\":false,\"probe_exit\":$probe_exit}" > host-hvf-probe.json
+            cat host-hvf-probe.json
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: host-hvf-capability
+          path: host-hvf-probe.json
       - name: Verify private VM transfer file selection and integrity checks
         run: |
           brew list qemu >/dev/null 2>&1 || brew install qemu
