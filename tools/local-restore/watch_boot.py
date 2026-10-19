@@ -4,6 +4,7 @@ Frame and private console stay inside the VM folder. Output only bounded screen
 geometry/progress observations. A changed screen requires human visual review.
 """
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -16,6 +17,8 @@ from watch import tail
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('vm', type=Path)
+    parser.add_argument('--after-progress', action='store_true',
+                        help='Keep observing screen changes after progress row disappears')
     args = parser.parse_args()
     logs = args.vm / 'boot-logs'
     last_bucket = None
@@ -43,7 +46,9 @@ def main():
         white = sum(min(frame.getpixel((x, 1026))) > 200 for x in range(160, 668))
         state = {'observed_unix_time': int(time.time()), 'white_progress_pixels': white,
                  'progress_row_width': 508, 'visible_ui_confirmed': False}
-        bucket = white // 32
+        if args.after_progress:
+            state['frame_sha256'] = hashlib.sha256(frame.tobytes()).hexdigest()
+        bucket = state['frame_sha256'] if args.after_progress else white // 32
         if bucket != last_bucket:
             frame.save(logs / 'observed.png')
             print(json.dumps(state), flush=True)
@@ -51,7 +56,7 @@ def main():
         (logs / 'frame-observation.json').write_text(json.dumps(state, indent=2))
         # A completed or replaced progress row does not establish what the
         # screen means. Save it and return for actual visual inspection.
-        if white == 0 or white >= 500:
+        if not args.after_progress and (white == 0 or white >= 500):
             frame.save(logs / 'observed.png')
             print('Screen requires visual review; UI success has not been inferred.', flush=True)
             return
