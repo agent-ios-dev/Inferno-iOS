@@ -1,0 +1,15 @@
+{
+  "run": 39257092574,
+  "app_commit": "10ef170939c0abbfbc73e29291fc843719d5e3e3",
+  "backend_commit": "b533085982f346a954b4ce8e27a827b04d64b3ce",
+  "bundle_id": "dev.agent-ios.inferno",
+  "minimum_ios": "16.0",
+  "ipa_bytes": 7536905,
+  "sha256": "b58ccd9cb491f7edad4a92de806d4bcefecd6774e464617c049af16af759a15b",
+  "zip_crc_ok": true,
+  "app_and_qemu_arm64_iphoneos": true,
+  "get_task_allow": true,
+  "required_guest_patchers_present": true,
+  "springboard_confirmed": false,
+  "physical_iphone_tested": false
+}

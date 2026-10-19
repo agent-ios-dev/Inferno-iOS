@@ -555,3 +555,13 @@ change. Await build, download actual Inferno-ipa artifact, check IPA contents an
 give the file with explicit unverified-SpringBoard status. Main private restore
 39251197224 continues separately; no duplicate restore. Watcher83242 is the
 original private run watch; outer exec38 was stopped, not the GitHub restore.
+
+Experimental IPA build **39257092574 SUCCEEDED**, exact app10ef170/backendb533085.
+Downloaded local `work/ipa-39257092574/Inferno.ipa`,7536905bytes,
+SHA256 b58ccd9cb491f7edad4a92de806d4bcefecd6774e464617c049af16af759a15b.
+Checked ZIP CRC, bundle ID dev.agent-ios.inferno, app+dylib arm64 iPhoneOS targets,
+get-task-allow entitlement, both required guest patchers, expected backend
+diagnostic string. Bounded verification report committed in reports/. This is
+NOT physical iPhone testing or SpringBoard proof. User explicitly requested this
+experimental IPA now; provide local file. Production workflow default unchanged.
+Private restore39251197224 remains active; last observed system image25%.
