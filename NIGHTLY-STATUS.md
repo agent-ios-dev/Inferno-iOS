@@ -140,9 +140,17 @@ ticket or key is exported. This locates RST during preparation vs sending vs
 waiting for the next request, and identifies which FUD request is implicated.
 Backend remains **d1fb886**, no new production IPA.
 
-Active FUD-phase restore **39182272475**, app **6e2038e**, backend **d1fb886**.
-Verification **39182174648** running at dispatch. Inspect these results before
-another restore; do not duplicate the active run.
+FUD-phase restore **39182272475**, app **6e2038e**, backend **d1fb886**,
+failed earlier during ASR at fraction **0.279692**, 640 seconds: OUT NAK
+timeout, **frame offset 0/16326, buffered IN 0**. No byte of this frame
+was accepted; no DART fault, panic, sequence error or restored FIN/RST.
+No FUD request reached. Verification **39182174648 passed**.
+
+Next app increases finite zero-consumption NAK patience from 60 to 180 seconds.
+No positive partial transfer is retried, no success is fabricated, byte-count
+checks remain strict. This tests a slow translated guest's descriptor repost
+delay; it is not evidence that the eventual FUD reset is fixed. Keep existing
+FUD diagnostics and backend **d1fb886** for the next full restore.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source

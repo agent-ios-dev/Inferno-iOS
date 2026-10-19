@@ -489,7 +489,7 @@ final class GuestUSB {
     /// as dead. Two seconds used to be the limit, and a guest busy writing the
     /// restore under the translator overran it -- the whole restore died with
     /// NAK. `writeDeadline` still catches a guest that is truly stuck.
-    private static let bulkOutPatience: TimeInterval = 60
+    private static let bulkOutPatience: TimeInterval = 180
 
     /// One OUT packet, retried on NAK -- and between tries, whatever the
     /// device has for us is taken off it.
