@@ -1,0 +1,14 @@
+{
+  "prior_build": 39302166191,
+  "prior_failure": "Meson configured arm64 iOS on Intel Mac and tried missing /opt/homebrew/include before target-prefix lookup",
+  "failed_stage": "Build libqemu-aarch64-softmmu.dylib",
+  "tested_runtime_backend": "aa1d928b2ec16ba27e68a50463c70bdc17510880",
+  "ipa_backend": "852ac804cab9611f3570dd2c53d612f6681993d4",
+  "changed_backend_files": [
+    "meson.build"
+  ],
+  "runtime_C_and_CXX_sources_unchanged": true,
+  "replacement_build": 39303785963,
+  "replacement_status": "in_progress",
+  "physical_iphone_jit_execution_verified": false
+}
