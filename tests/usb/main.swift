@@ -82,4 +82,51 @@ try verify(511)
 try verify(512)
 try verify(512, truncate: true)
 try verify(512, inError: true)
+
+// Reproduce the lock inversion: a data frame's first packet is NAKed until
+// the peer sees an ACK. No mux number may be skipped or replayed, and no ACK
+// may be inserted in the middle of an already accepted frame.
+func verifyAckPriority() throws {
+    var pair: [Int32] = [0, 0]
+    precondition(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+    let usb = GuestUSB(testSocket: pair[0])
+    let done = DispatchSemaphore(value: 0)
+    let payload = [UInt8](repeating: 0xA5, count: 100)
+    DispatchQueue.global().async {
+        defer { Darwin.close(pair[1]); done.signal() }
+        var stage = 0
+        while let request = readExactly(pair[1], 23) {
+            let wanted = Int(request[21]) | Int(request[22]) << 8
+            let incoming = request[2] == 0x69
+            let bytes = incoming ? [] : (readExactly(pair[1], wanted) ?? [])
+            var nak = incoming
+            if !incoming {
+                if stage == 0 {
+                    precondition(bytes.count == 116 && bytes[12] == 0 && bytes[13] == 0)
+                    usb.testQueueAck() // Queue while writer owns the send lock.
+                    nak = true; stage = 1
+                } else if stage == 1 {
+                    precondition(bytes.count == 36 && bytes[12] == 0 && bytes[13] == 0,
+                                 "ACK must use the unconsumed frame's mux number")
+                    precondition(bytes[29] == 0x10)
+                    stage = 2
+                } else {
+                    precondition(bytes.count == 116 && bytes[12] == 0 && bytes[13] == 1)
+                    precondition(Array(bytes.dropFirst(16)) == payload)
+                    stage = 3
+                }
+            }
+            var reply: [UInt8] = [2, request[1]]
+            reply += Array(request[2..<6]) + [request[6]] + Array(request[7..<15])
+            reply += nak ? [254,255,255,255,0,0] : [0,0,0,0,UInt8(wanted & 255),UInt8(wanted >> 8)]
+            writeAll(pair[1], reply)
+            if stage == 3 { return }
+        }
+        preconditionFailure("ACK priority peer disconnected")
+    }
+    defer { Darwin.close(pair[0]) }
+    try usb.testMuxOut(payload)
+    precondition(done.wait(timeout: .now()+10) == .success)
+}
+try verifyAckPriority()
 print("Real GuestUSB: full frame preserved across descriptor boundaries, NAK retries and short-OUT rejection passed")
