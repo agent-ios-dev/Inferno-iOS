@@ -21,6 +21,10 @@ def main():
     mode.add_argument('--restore', action='store_true')
     mode.add_argument('--patch-only', action='store_true',
                       help='Boot patched ramdisk on an installed disk; never run erase/restore')
+    parser.add_argument('--recovery-image',
+                        help='Explicit alternate RAMdisk basename, only with --patch-only')
+    parser.add_argument('--recovery-log-name',
+                        help='New log directory basename, only with --patch-only')
     parser.add_argument('--ssc-status-diagnostics', action='store_true',
                         help='Bounded SEP controller command/result counters; diagnostic backend required')
     parser.add_argument('--cores', type=int, choices=range(2, 8), default=7,
@@ -28,6 +32,11 @@ def main():
     parser.add_argument('--memory', choices=('2G', '3G', '4G'), default='3G',
                         help='Guest RAM; phone automatic setup uses 2G')
     args = parser.parse_args()
+    for value in (args.recovery_image, args.recovery_log_name):
+        if value is not None and (not args.patch_only or not value or
+                                  Path(value).name != value or '/' in value or '\\' in value or
+                                  value in ('.', '..')):
+            parser.error('Recovery overrides require --patch-only and a plain basename')
     root = Path('/vm')
     data = root / 'InfernoData'
     prepared = json.loads((root / 'prepare.json').read_text())
@@ -38,9 +47,9 @@ def main():
         completed = root / 'restore-logs/idevicerestore.log'
         if not completed.is_file() or 'Status: Restore Finished' not in completed.read_text(errors='replace'):
             raise ValueError('Patch-only recovery requires recorded successful restore')
-    logs = root / ('patch-only-logs' if args.patch_only else 'restore-logs' if args.restore else 'boot-logs')
+    logs = root / (args.recovery_log_name or ('patch-only-logs' if args.patch_only else 'restore-logs' if args.restore else 'boot-logs'))
     logs.mkdir(exist_ok=True)
-    ramdisk = root / ('patch-only-ramdisk.im4p' if args.patch_only else 'patched-ramdisk.im4p')
+    ramdisk = root / (args.recovery_image or ('patch-only-ramdisk.im4p' if args.patch_only else 'patched-ramdisk.im4p'))
     if recovery and not ramdisk.is_file():
         raise ValueError('Patched restore ramdisk missing')
     machine = ['t8030', 'usb-uplink-type=inferno', 'usb-uplink-addr=unix:/tmp/iusb.sock',
