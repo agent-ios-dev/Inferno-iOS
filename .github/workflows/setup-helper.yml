@@ -1,0 +1,28 @@
+name: Check Setup completion recovery candidate - no guest boot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  helper:
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test actual CoreFoundation edits without a guest
+        run: |
+          xcrun clang -O2 -DINFERNO_SETUP_TEST -framework CoreFoundation tools/local-restore/setup_skip.c -o /tmp/setup-test
+          python3 tools/local-restore/test_setup_skip.py /tmp/setup-test
+      - name: Compile and sign the iOS recovery-only candidate
+        run: |
+          mkdir setup-output
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -framework CoreFoundation tools/local-restore/setup_skip.c -o setup-output/inferno_patcher
+          codesign -f -s - setup-output/inferno_patcher
+          codesign --verify --strict setup-output/inferno_patcher
+          shasum -a 256 setup-output/inferno_patcher > setup-output/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: setup-recovery-candidate
+          path: setup-output/
+          retention-days: 7
