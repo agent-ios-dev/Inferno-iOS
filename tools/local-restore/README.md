@@ -82,3 +82,14 @@ original restore evidence intact. Observe using `watch.py VM --patch-only
 --handoff`; the handoff requires prior restore completion and current explicit
 patcher success, and is blocked by any current panic/failure. A successful
 restore alone does not prove filesystem patching or normal iOS startup.
+
+Patch-only recovery uses `exit_recovery` with explicit `rd=md0`, avoiding the
+restore-mode driver's dummy storage device. Generate its dedicated image with
+`ramdisk_cli.py --patch-only`; this disables the stock restore server in that
+image so it cannot trigger a reboot while patching. `--recovery-daemon PATH`
+explicitly selects a signed candidate helper. The production helper is retained.
+`recovery_daemon.py` generates the candidate that modifies the five documented
+System launchd-cache entries instead of blocking on encrypted Data. It rejects
+missing/duplicate labels and preserves unrelated plist values. Native CF tests
+are build-only checks; the generated helper still needs actual guest validation.
+Repeated runs must exclude `.InfernoOriginalBytes` from cache selection.
