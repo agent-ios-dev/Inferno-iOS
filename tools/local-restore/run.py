@@ -25,6 +25,8 @@ def main():
                         help='Bounded SEP controller command/result counters; diagnostic backend required')
     parser.add_argument('--cores', type=int, choices=range(2, 8), default=7,
                         help='Total virtual cores including SEP; 2 isolates single-AP boot')
+    parser.add_argument('--memory', choices=('2G', '3G', '4G'), default='3G',
+                        help='Guest RAM; phone automatic setup uses 2G')
     args = parser.parse_args()
     root = Path('/vm')
     data = root / 'InfernoData'
@@ -52,7 +54,7 @@ def main():
         '-kernel', str(data / 'Restore' / prepared['kernel']),
         '-dtb', str(data / 'Restore' / prepared['device_tree']),
         '-append', ('rd=md0 ' if args.patch_only else '') + 'tlto_us=-1 agm-genuine=1 agm-authentic=1 agm-trusted=1 serial=3 wdt=-1 launchd_unsecure_cache=1 -vm_compressor_wk_sw',
-        '-smp', str(args.cores), '-m', '3G', '-accel', 'tcg,thread=multi',
+        '-smp', str(args.cores), '-m', args.memory, '-accel', 'tcg,thread=multi',
         '-display', 'none', '-vnc', '0.0.0.0:0',
         '-qmp', 'tcp:0.0.0.0:4444,server=on,wait=off',
         '-chardev', 'socket,id=serial0,host=0.0.0.0,port=5555,server=on,wait=off,logfile=' + str(logs / 'guest-console.log'),
@@ -103,6 +105,7 @@ def main():
         qemu = start(command, 'qemu.log', cwd=root)
         (logs / 'host-status.json').write_text(json.dumps({'qemu_pid': qemu.pid,
             'restore_requested': args.restore, 'patch_only_requested': args.patch_only,
+            'total_cores': args.cores, 'memory': args.memory,
             'springboard_confirmed': False}))
         if args.restore:
             # The guest has to finish booting and USB enumeration first.
