@@ -152,6 +152,10 @@ checks remain strict. This tests a slow translated guest's descriptor repost
 delay; it is not evidence that the eventual FUD reset is fixed. Keep existing
 FUD diagnostics and backend **d1fb886** for the next full restore.
 
+Active bounded-patience restore **39184436917**, app **7c6618e**, backend
+**d1fb886**. Verification **39184423393** running. Inspect results before a
+new restore; no duplicate is needed. Production IPA still pins **37d6816**.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
