@@ -197,6 +197,13 @@ distinguishes peer close from acknowledged FIN. TCP close logs bounded port
 and outstanding byte count. Socket test also checks peer RST is surfaced as
 gone, never mislabeled acknowledged FIN. Keep backend **d1fb886** fixed.
 
+The new RST socket regression initially failed (**39192548420**): serviceMux
+kept polling after marking a channel reset instead of returning that handled
+event. App **bb0baf1** returns immediately after RST. Verification
+**39192720987 passed** all socket tests, real C DMA/DART tests, iOS/macOS and
+harness typechecks, guest daemon check. Active full restore **39192852048**,
+exact app **bb0baf1**, backend **d1fb886**. Do not duplicate this run.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
