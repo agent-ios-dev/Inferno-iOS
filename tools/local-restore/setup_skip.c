@@ -119,12 +119,15 @@ int main(void)
     setbuf(stdout, NULL);
     int console = open("/dev/console", O_WRONLY);
     if (console >= 0) { dup2(console, 1); dup2(console, 2); close(console); }
-    const char* mountpoint = "/mnt/inferno-data";
-    if (mkdir(mountpoint, 0755) && errno != EEXIST) return 1;
+    puts("*** SETUP: helper started");
+    const char* mountpoint = "/mnt9";
+    if (mkdir(mountpoint, 0755) && errno != EEXIST) {
+        printf("*** SETUP: mountpoint creation failed errno=%d\n", errno); return 1;
+    }
     char* mount[] = {"/sbin/mount_apfs", "-o", "rw", "/dev/disk0s1s2", (char*)mountpoint, NULL};
     puts("*** SETUP: mounting existing Data; no restore or erase");
     if (bounded_run(mount, 90)) { puts("*** SETUP: Data mount failed; no preference write"); return 1; }
-    int failed = mark_setup_finished("/mnt/inferno-data/mobile/Library/Preferences/com.apple.purplebuddy.plist");
+    int failed = mark_setup_finished("/mnt9/mobile/Library/Preferences/com.apple.purplebuddy.plist");
     sync();
     char* unmount[] = {"/sbin/umount", (char*)mountpoint, NULL};
     int unmount_failed = bounded_run(unmount, 30);
