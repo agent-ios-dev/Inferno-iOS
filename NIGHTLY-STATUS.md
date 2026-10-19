@@ -517,3 +517,14 @@ Inspect bounded JSON/PNG and actual screen; require real SpringBoard/backboardd.
 iPhone library builds/import and actual iPhone boot still need verification.
 Never publish firmware/disks/keys/raw guest logs in public repositories/artifacts.
 Worktrees are saved; only this checkpoint is newer than the last verified app SHA.
+
+## RESUMED — 19 October 2026, 15:20 Moscow
+
+User explicitly said continue after restart. Work is active again; automation
+inferno-springboard-vm is ACTIVE with refreshed checkpoint. No other active private
+run was present. Exactly one private restore **39251197224** dispatched:
+app **10ef170939c0abbfbc73e29291fc843719d5e3e3**, backend
+**b533085982f346a954b4ce8e27a827b04d64b3ce**, workflow **360f600**.
+Repo rechecked private. Watcher session83242 redirects routine state to
+work/private-watch-39251197224.txt. Inspect this run, do not duplicate it.
+All three worktrees were clean at resume. Old production backend remains pinned.
