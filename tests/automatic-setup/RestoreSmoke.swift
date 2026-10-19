@@ -116,6 +116,7 @@ import CoreGraphics
                 "asr_socket_opened": hostLog.contains("Restore: ASR on port"),
                 "asr_validation_completed": hostLog.contains("Restore: the image is validated, sending it"),
                 "asr_payload_sent": hostLog.contains("Restore: the whole system image is sent"),
+                "asr_payload_and_fin_acknowledged": hostLog.contains("RESTORE-ASR: payload and FIN acknowledged"),
                 "patcher_waiting": guestLog.contains("PATCHER: waiting for the restore to finish"),
                 "patcher_data_volume_ready": guestLog.contains("PATCHER: the data volume is here"),
                 "patcher_system_mounted": guestLog.contains("PATCHER: mount_apfs /dev/disk0s1s1 says 0"),

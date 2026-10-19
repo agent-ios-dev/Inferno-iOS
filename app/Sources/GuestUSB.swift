@@ -36,7 +36,6 @@ final class GuestUSB {
         /// device asked for — and not an error at all on a read that was merely
         /// looking: there, NAK means "nothing yet".
         case notReady
-        case deferredForAck
 
         var errorDescription: String? {
             switch self {
@@ -44,7 +43,6 @@ final class GuestUSB {
             case .refused(let p): return L("Гость отказал в порту %d", Int(p))
             case .gone:           return L("Гость отключился")
             case .notReady:       return L("устройство не отвечает (NAK)")
-            case .deferredForAck: return "USB frame deferred for a pending acknowledgement"
             }
         }
     }
@@ -73,10 +71,13 @@ final class GuestUSB {
     // Exercise the real transport against a bounded socket peer in CI.
     convenience init(testSocket: Int32) { self.init(); link = testSocket; endpointOut = 1 }
     func testBulkOut(_ bytes: [UInt8]) throws { try bulkOut(bytes) }
-    func testMuxOut(_ bytes: [UInt8]) throws { muxVersion = 2; try sendMux(.tcp, payload: bytes) }
-    func testQueueAck() {
+    func testFinish() throws {
+        muxVersion = 2; endpointIn = 1
         let channel = Channel(host: self, localPort: 0xF001, remotePort: 12345)
-        muxLock.lock(); pendingAcks[channel.localPort] = channel; muxLock.unlock()
+        channel.txSeq = 3; channel.txAck = 1
+        channels[channel.localPort] = channel
+        try finish(channel, timeout: 5)
+        close(channel) // Must not send RST after graceful completion.
     }
     #endif
 
@@ -419,8 +420,6 @@ final class GuestUSB {
 
     private func sendMux(_ proto: Proto, header: [UInt8] = [], payload: [UInt8] = []) throws {
         sendLock.lock(); defer { sendLock.unlock() }
-        try flushPendingAcks()
-        while true {
         let size = (muxVersion < 2 ? 8 : 16) + header.count + payload.count
         var head = be32(proto.rawValue) + be32(UInt32(size))
         if muxVersion >= 2 {
@@ -430,13 +429,7 @@ final class GuestUSB {
         }
         let packet = head + header + payload
         do {
-            try bulkOut(packet, allowAckDeferral: true)
-        } catch Failure.deferredForAck {
-            // Not one byte of this mux frame was accepted. Hand its number
-            // back, send the ACK first, then rebuild this frame's mux header.
-            if muxVersion >= 2 { txSeq &-= 1 }
-            try flushPendingAcks()
-            continue
+            try bulkOut(packet)
         } catch {
             // The number is handed back: the device counts every packet and
             // drops everything after a gap for good -- "detected duplicate
@@ -454,35 +447,6 @@ final class GuestUSB {
         if muxVersion >= 2 {
             recent.append(packet)
             if recent.count > GuestUSB.recentKept { recent.removeFirst(recent.count - GuestUSB.recentKept) }
-        }
-        return
-        }
-    }
-
-    // A reader must never block behind a writer while holding a received
-    // frame's ACK. Queue/coalesce cumulative ACKs instead; the writer may
-    // prioritize them before a frame whose first bus packet is still NAKed.
-    private var pendingAcks: [UInt16: Channel] = [:] // guarded by muxLock
-    private var flushingAcks = false // guarded by sendLock
-    private var unsentTCPSequence: [UInt16: UInt32] = [:] // guarded by sendLock
-    private func queueAck(_ channel: Channel) throws {
-        muxLock.lock(); pendingAcks[channel.localPort] = channel; muxLock.unlock()
-        if sendLock.try() {
-            defer { sendLock.unlock() }
-            try flushPendingAcks()
-        }
-    }
-    private func flushPendingAcks() throws {
-        guard !flushingAcks else { return }
-        flushingAcks = true; defer { flushingAcks = false }
-        // Caller owns sendLock. Remove before sending, so sendMux recursion
-        // observes an empty queue rather than sending the same ACK again.
-        while true {
-            muxLock.lock()
-            let next = pendingAcks.keys.min().flatMap { pendingAcks.removeValue(forKey: $0) }
-            muxLock.unlock()
-            guard let channel = next else { return }
-            try sendTcp(channel, flags: 0x10, sequence: unsentTCPSequence[channel.localPort])
         }
     }
 
@@ -545,8 +509,7 @@ final class GuestUSB {
     /// 81" on the guest. What is read is only filed away in `inbound`: acting
     /// on it could mean sending an acknowledgement, and that would go out
     /// ahead of this packet under the next number.
-    private func bulkOut(_ packet: [UInt8], frameOffset: Int = 0, frameLength: Int? = nil,
-                         allowAckDeferral: Bool = false) throws {
+    private func bulkOut(_ packet: [UInt8], frameOffset: Int = 0, frameLength: Int? = nil) throws {
         // The socket accepts buffers larger than a USB bus packet, but DWC3
         // services only the current guest transfer descriptor per request.
         // A 16 KiB request crossing that descriptor's end can succeed with a
@@ -558,8 +521,7 @@ final class GuestUSB {
             var offset = 0
             while offset < packet.count {
                 let end = min(offset + maxPacket, packet.count)
-                try bulkOut(Array(packet[offset..<end]), frameOffset: offset, frameLength: packet.count,
-                            allowAckDeferral: allowAckDeferral)
+                try bulkOut(Array(packet[offset..<end]), frameOffset: offset, frameLength: packet.count)
                 offset = end
             }
             return
@@ -577,10 +539,6 @@ final class GuestUSB {
                 try transfer(.tokenOut, endpoint: endpointOut, data: packet, retries: 1, delay: 0)
                 return
             } catch Failure.notReady {
-                if allowAckDeferral && frameOffset == 0 && !packet.isEmpty {
-                    muxLock.lock(); let ackWaiting = !pendingAcks.isEmpty; muxLock.unlock()
-                    if ackWaiting { throw Failure.deferredForAck }
-                }
                 if Date() > deadline {
                     recvLock.lock()
                     let buffered = inbound.count
@@ -685,6 +643,7 @@ final class GuestUSB {
             try host.readAvailable(self, timeout: timeout)
         }
         func close() { host.close(self) }
+        func finish(timeout: TimeInterval = 120) throws { try host.finish(self, timeout: timeout) }
     }
 
     private var channels: [UInt16: Channel] = [:]
@@ -731,29 +690,22 @@ final class GuestUSB {
 
     private func sendTcp(_ channel: Channel, flags: UInt8, payload: [UInt8] = [], sequence: UInt32? = nil) throws {
         sendLock.lock(); defer { sendLock.unlock() }
-        try flushPendingAcks()
         muxLock.lock()
         let start = sequence ?? channel.txSeq
         let ack = channel.txAck
         if sequence == nil {
             // Publish before the blocking USB send: the pump can receive its
             // ACK before sendMux returns to this thread.
-            let consumed = UInt32(payload.count) + (flags & 0x02 != 0 ? 1 : 0)
+            let consumed = UInt32(payload.count) + (flags & 0x03 != 0 ? 1 : 0)
             channel.txSeq &+= consumed
             if consumed > 0 { channel.pendingTCP.append((start, flags, payload)) }
         }
         muxLock.unlock()
-        if !payload.isEmpty {
-            unsentTCPSequence[channel.localPort] = start
-        }
-        defer { if !payload.isEmpty { unsentTCPSequence[channel.localPort] = nil } }
         var header = be16(channel.localPort) + be16(channel.remotePort)
         header += be32(start) + be32(ack)
         header += [5 << 4, flags]
         header += be16(UInt16((256 * 1024) >> 8)) + be16(0) + be16(0)
         try sendMux(.tcp, header: header, payload: payload)
-        if !payload.isEmpty { unsentTCPSequence[channel.localPort] = nil }
-        try flushPendingAcks()
     }
 
     /// Reads from the device and files away what comes, returning as soon as
@@ -802,7 +754,7 @@ final class GuestUSB {
                     lastProgress = Date()
                     channel.txAcked = acknowledged
                     channel.pendingTCP.removeAll { packet in
-                        let end = packet.sequence &+ UInt32(packet.bytes.count) &+ (packet.flags & 2 != 0 ? 1 : 0)
+                        let end = packet.sequence &+ UInt32(packet.bytes.count) &+ (packet.flags & 3 != 0 ? 1 : 0)
                         return Int32(bitPattern: acknowledged &- end) >= 0
                     }
                 }
@@ -811,7 +763,7 @@ final class GuestUSB {
 
             if flags & 0x02 != 0, flags & 0x10 != 0 {         // SYN|ACK
                 muxLock.lock(); channel.txAck = sequence &+ 1; muxLock.unlock()
-                try queueAck(channel)
+                try sendTcp(channel, flags: 0x10)
                 continue
             }
             if !payload.isEmpty {
@@ -825,10 +777,14 @@ final class GuestUSB {
                     lastProgress = Date()
                 }
                 muxLock.unlock()
-                try queueAck(channel)
+                try sendTcp(channel, flags: 0x10)
             }
             if flags & 0x01 != 0 {                            // FIN
                 LogCapture.shared.note("USB-TCP: guest finished channel port=\(channel.remotePort)")
+                muxLock.lock()
+                if channel.txAck == sequence &+ UInt32(payload.count) { channel.txAck &+= 1 }
+                muxLock.unlock()
+                try sendTcp(channel, flags: 0x10)
                 muxLock.lock(); channel.closed = true; muxLock.unlock()
             }
             return
@@ -917,6 +873,33 @@ final class GuestUSB {
             try serviceMux(timeout: 0.2)
         }
         throw Failure.usb(L("гость не ответил вовремя"))
+    }
+
+    private func finish(_ channel: Channel, timeout: TimeInterval) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        func waitForAcknowledgement() throws {
+            while true {
+                muxLock.lock()
+                let drained = channel.txSeq == channel.txAcked
+                let dead = channel.closed
+                muxLock.unlock()
+                if drained { return }
+                if dead { throw Failure.gone }
+                guard Date() < deadline else { throw Failure.usb("TCP close acknowledgement timed out") }
+                try resendIfStuck(channel)
+                try serviceMux(timeout: 0.2)
+            }
+        }
+        // USB acceptance is not TCP delivery. Never reset a channel with
+        // unacknowledged ASR bytes; drain it before signalling EOF with FIN.
+        try waitForAcknowledgement()
+        muxLock.lock(); let dead = channel.closed; muxLock.unlock()
+        if !dead {
+            try sendTcp(channel, flags: 0x11)
+            try waitForAcknowledgement()
+        }
+        muxLock.lock(); channel.closed = true; channels[channel.localPort] = nil; muxLock.unlock()
+        LogCapture.shared.note("USB-TCP: acknowledged graceful close port=\(channel.remotePort)")
     }
 
     fileprivate func close(_ channel: Channel) {

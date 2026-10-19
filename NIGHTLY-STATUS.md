@@ -169,9 +169,20 @@ in **39186853764**; platform typechecks were still running at this checkpoint.
 This does not yet establish the cause of the real guest's NAK or FUD RST.
 Production IPA still pins **37d6816**; do not promote the experiment yet.
 
-Active ACK-priority restore **39186986002**, app **607bdbd**, backend
-**d1fb886**. Check exact evidence and final **39186853764** verification
-before a new restore. Do not duplicate this test.
+ACK-priority restore **39186986002**, app **607bdbd**, backend **d1fb886**
+failed much earlier at 90 seconds, restored RST on NORData before ASR. Tests
+**39186853764 passed**, but runtime regressed. **ACK-priority experiment is
+removed from GuestUSB and its test**; use the pre-experiment transport as base.
+
+Next concrete issue from source: ASR's final `channel.close()` sent RST even
+with unacknowledged TCP bytes (USB acceptance is not delivery). Existing
+netlab/muxd.py explicitly drains and FINs ASR for the same reason. New `finish`
+waits for data ACK, sends FIN|ACK, waits for FIN ACK and removes the channel
+without RST. FIN consumes sequence space and guest FIN is acknowledged.
+RestoreClient uses this on successful full ASR transfer; error paths keep RST.
+Socket test requires data ACK before FIN, verifies FIN sequence/flags, then
+FIN ACK and no extra RST. Report adds `asr_payload_and_fin_acknowledged`.
+This is not yet runtime validated. Backend stays **d1fb886**, IPA **37d6816**.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source

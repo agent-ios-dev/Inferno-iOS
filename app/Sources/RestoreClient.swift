@@ -528,6 +528,8 @@ final class RestoreClient {
             }
         }
         note(L("Рестор: образ системы отдан целиком"))
+        try channel.finish()
+        note("RESTORE-ASR: payload and FIN acknowledged")
     }
 
     /// Knocks on the ASR port until it answers.
