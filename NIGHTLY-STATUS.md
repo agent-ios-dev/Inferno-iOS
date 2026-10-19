@@ -253,3 +253,11 @@ counters. Harness exports at most eight numeric snapshots per category; no
 addresses, payload, firmware or raw guest logs. This distinguishes missing
 transfer resources from disabled endpoints or undrained completion events,
 before making another behavioral change. Shipping backend stays **37d6816**.
+
+Active diagnostic restore **39201121932**, exact app **b3c3261**, backend
+**e18bd7b0f0ac519cced473fc9772a344193828e2**. Verification **39201122368**
+is running; inspect both before replacing this run. No duplicate dispatch.
+At 04:51 UTC backend build has started. The preceding PNG was inspected:
+Apple logo with incomplete restore progress bar, no SpringBoard. This run
+adds observability, not a claimed behavioral fix. At the 06:00 UTC deadline
+preserve its actual state if it has not completed and stop the nightly schedule.
