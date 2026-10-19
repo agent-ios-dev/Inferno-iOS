@@ -1,0 +1,29 @@
+name: Build recovery helper only - no guest boot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  helper:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate and build signed recovery helper
+        run: |
+          mkdir recovery-output
+          python3 tools/local-restore/recovery_daemon.py /tmp/recovery-daemon.c
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -framework CoreFoundation /tmp/recovery-daemon.c -o recovery-output/inferno_patcher
+          codesign -f -s - recovery-output/inferno_patcher
+          codesign --verify --strict recovery-output/inferno_patcher
+          shasum -a 256 recovery-output/inferno_patcher > recovery-output/SHA256SUMS
+      - name: Verify service cache changes and fail-closed behavior
+        run: |
+          xcrun clang -O2 -DINFERNO_CACHE_TEST -framework CoreFoundation tools/local-restore/launchd_cache.c -o /tmp/cache-test
+          python3 tools/local-restore/test_launchd_cache.py /tmp/cache-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recovery-helper
+          path: recovery-output/
+          retention-days: 7
