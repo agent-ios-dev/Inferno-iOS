@@ -1,0 +1,24 @@
+{
+  "observed_date": "2026-10-19",
+  "backend_commit": "aa1d928b2ec16ba27e68a50463c70bdc17510880",
+  "local_runtime": "inferno-local:sep-status",
+  "total_vcpus": 2,
+  "guest_memory": "3G",
+  "restore_ramdisk_attached": false,
+  "springboard_process": {
+    "name": "SpringBoard",
+    "pid": 55
+  },
+  "backboardd_process": {
+    "name": "backboardd",
+    "pid": 59
+  },
+  "visible_setup_screen_confirmed": true,
+  "screen_description": "Actual guest iOS Hello setup screen, visually inspected",
+  "user_interaction_confirmation": "User reported works",
+  "home_screen_confirmed": false,
+  "cold_boot_of_export_confirmed": false,
+  "physical_iphone_confirmed": false,
+  "screenshot_sha256": "77f2aca8a22896bc54eb84008304e63c9b17ad58e46feb5e91e25f3a355212e9",
+  "vm_left_running_for_user": true
+}
