@@ -1,0 +1,21 @@
+{
+  "scope": "local Windows Docker Linux restoration experiment",
+  "base_backend": "b533085982f346a954b4ce8e27a827b04d64b3ce",
+  "candidate_backend": "fbbbf4ed18a43fb5f32a0de23a5ccca8c9f5f4cc",
+  "initial_failure": "QEMU aborted on bql_locked assertion during the first Inferno USB RESET message",
+  "cause": "The QIO socket coroutine can resume without the BQL; USB device state requires explicit protection after reads",
+  "change": "Read the complete OUT frame before looking up endpoints; guard request dispatch, RESET, CANCEL, response metadata and packet cleanup without holding a newly acquired guard over socket writes",
+  "native_linux_build_passed": true,
+  "patched_guest_usb_enumerated": true,
+  "patched_restored_connection_opened": true,
+  "patched_nor_data_sent": true,
+  "patched_asr_connection_opened": true,
+  "observed_asr_restore_percent": 4,
+  "restore_completed": false,
+  "filesystem_patcher_completed": false,
+  "cold_boot_passed": false,
+  "springboard_confirmed": false,
+  "backboardd_confirmed": false,
+  "physical_iphone_confirmed": false,
+  "notes": "Observation checkpoint, not a ready VM. The running test image predates whitespace-only cleanup in the source commit. Firmware, disks, tickets, addresses and raw guest logs remain local."
+}
