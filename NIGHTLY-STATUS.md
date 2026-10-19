@@ -152,9 +152,26 @@ checks remain strict. This tests a slow translated guest's descriptor repost
 delay; it is not evidence that the eventual FUD reset is fixed. Keep existing
 FUD diagnostics and backend **d1fb886** for the next full restore.
 
-Active bounded-patience restore **39184436917**, app **7c6618e**, backend
-**d1fb886**. Verification **39184423393** running. Inspect results before a
-new restore; no duplicate is needed. Production IPA still pins **37d6816**.
+Bounded-patience restore **39184436917**, app **7c6618e**, backend **d1fb886**
+failed at ASR fraction 0.314829, 1025 seconds: same frame offset 0/16326,
+buffered IN 0. Three-minute timeout did not solve it; patience reverted to 60.
+No DART/panic/mux sequence error, no FUD reached. **39184423393 passed**.
+
+App **607bdbd** tests a concrete reader/writer lock inversion: serviceMux used
+to hold a received ACK while blocking on sendLock, while the writer waited
+for guest capacity. ACKs now queue/coalesce without blocking the reader;
+a fully unaccepted frame can give its mux number to the ACK, then rebuild
+its own header with the next number. Never inserts an ACK midway through an
+accepted frame. Pending same-channel data uses its unsent TCP sequence for
+the intervening ACK; no bytes are replayed. Socket regression reproduces the
+NAK-until-ACK peer and checks mux 0 ACK -> mux 1 original payload. It passed
+in **39186853764**; platform typechecks were still running at this checkpoint.
+This does not yet establish the cause of the real guest's NAK or FUD RST.
+Production IPA still pins **37d6816**; do not promote the experiment yet.
+
+Active ACK-priority restore **39186986002**, app **607bdbd**, backend
+**d1fb886**. Check exact evidence and final **39186853764** verification
+before a new restore. Do not duplicate this test.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
