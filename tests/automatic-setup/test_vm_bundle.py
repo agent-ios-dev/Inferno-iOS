@@ -169,6 +169,55 @@ class BundleTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             vm.create(self.root, self.root / "out.zip", proof, "a" * 40, "b" * 40, True, "missing-qemu-img")
 
+    def staging_fixture(self, mutate=None, extra=None):
+        source = self.archive(mutate=mutate)
+        output = self.root / "candidate-fixture.zip"
+        with zipfile.ZipFile(source) as original, zipfile.ZipFile(output, "w") as candidate:
+            meta = json.loads(original.read("Machine.json"))
+            meta.update(format=0, kind="unverified-vm-candidate-v1", app_commit="a" * 40,
+                        backend_commit="b" * 40, visible_springboard_confirmed=False)
+            for item in original.infolist():
+                if item.filename != "Machine.json":
+                    candidate.writestr(item, original.read(item))
+            candidate.writestr("Candidate.json", json.dumps(meta))
+            candidate.writestr("Evidence.json", "{}")
+            if extra:
+                candidate.writestr(extra, "unexpected")
+        location = pathlib.Path(vm.__file__).parent / "private-delivery/stage_candidate.py"
+        module_spec = importlib.util.spec_from_file_location("stage_candidate", location)
+        module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(module)
+        return output, module
+
+    def test_stage_candidate_preserves_only_machine_inputs(self):
+        archive, module = self.staging_fixture()
+        destination = self.root / "fresh-documents"
+        module.stage(archive, destination)
+        files, root = vm.collect_files(destination)
+        self.assertEqual(root.name, "root.qcow2")
+        self.assertTrue(files)
+        self.assertFalse((destination / "AutomaticSetup.plist").exists())
+        self.assertFalse((destination / "Candidate.json").exists())
+        with self.assertRaisesRegex(ValueError, "overwrite"):
+            module.stage(archive, destination)
+
+    def test_stage_rejects_traversal_and_extra_files(self):
+        for extra in ("../escaped", "AutomaticSetup.plist", "guest-console.log"):
+            archive, module = self.staging_fixture(extra=extra)
+            destination = self.root / "must-not-appear"
+            with self.assertRaises(ValueError):
+                module.stage(archive, destination)
+            self.assertFalse(destination.exists())
+        self.assertFalse((self.root / "escaped").exists())
+
+    def test_stage_checksum_failure_never_publishes_folder(self):
+        archive, module = self.staging_fixture(
+            mutate=lambda meta: meta["files"]["InfernoData/root.qcow2"].update(sha256="0" * 64))
+        destination = self.root / "corrupted-documents"
+        with self.assertRaisesRegex(ValueError, "checksum"):
+            module.stage(archive, destination)
+        self.assertFalse(destination.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

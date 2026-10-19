@@ -4,6 +4,12 @@ import CoreGraphics
 
 @main struct RestoreSmoke {
     @MainActor static func main() {
+        let coldBoot = ProcessInfo.processInfo.environment["INFERNO_SMOKE_MODE"] == "cold-boot"
+        if coldBoot {
+            // A transferred machine has no first-install checkpoint or defaults.
+            // Do not let this harness's preceding restore invocation supply them.
+            UserDefaults.standard.removeObject(forKey: "automaticSetupPending")
+        }
         Bootstrap.prepareDocuments()
         let publicProgress = FileHandle(fileDescriptor: dup(STDOUT_FILENO), closeOnDealloc: true)
         LogCapture.shared.start()
@@ -95,6 +101,9 @@ import CoreGraphics
                     with: "<redacted>", options: .regularExpression).prefix(400))
             } ?? ""
             var report: [String: Any] = ["profile": AutomaticSetupProfile.id, "reason": reason,
+                "test_mode": coldBoot ? "cold-boot" : "restore",
+                "restore_ramdisk_configured": model.isRestoring,
+                "installed_disk_detected": VMConfig.systemInstalled,
                 "seconds": Int(Date().timeIntervalSince(started)),
                 "execution_budget_seconds": Int(executionBudget), "setup_pending": setup.pending,
                 "setup_message": setup.message,
@@ -220,7 +229,8 @@ import CoreGraphics
                 if !setup.pending && !setup.busy && model.isRunning && restoredAt == nil { restoredAt = Date() }
                 if let restoredAt, Date().timeIntervalSince(restoredAt) > 900 {
                     finished = true
-                    report("post-restore observation completed; screenshot requires visual inspection")
+                    report(coldBoot ? "cold-boot observation completed; screenshot requires visual inspection"
+                           : "post-restore observation completed; screenshot requires visual inspection")
                     let success = model.picture.image != nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(success ? 0 : 1) }
                 }
@@ -231,7 +241,17 @@ import CoreGraphics
                 }
             }
         }
-        setup.start(model: model)
+        if coldBoot {
+            guard VMConfig.systemInstalled, !setup.pending,
+                  model.config.restoreRamdiskPath == nil else {
+                report("cold boot refused: missing installed disk or restore still configured")
+                exit(1)
+            }
+            // The exact normal app startup; never call AutomaticSetup here.
+            model.start()
+        } else {
+            setup.start(model: model)
+        }
         RunLoop.main.run()
     }
 }

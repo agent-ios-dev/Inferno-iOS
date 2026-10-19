@@ -407,3 +407,22 @@ firmware, RAM or guest instructions ran in the probe. On these hosted runners
 HVF cannot accelerate restoration; don't switch to it on an assumption.
 Full verification39245757011 still running at this checkpoint; inspect final.
 Active restore39237004400 reached System image60%, no duplicate dispatched.
+
+Specific storage consent is now resolved: the user explicitly approved private
+`agent-ios-dev/Inferno-VM` and its VM disk Actions artifacts. The repository was
+created and verified private; checkout `work/Inferno-VM`, main **6292821**.
+Its capture workflow is provisioned and active but has NOT been dispatched.
+The earlier automatic-review rejection no longer blocks this approved destination.
+No guest disk has been uploaded. Do not use a different destination implicitly.
+
+App **4928802**, verification **39246903205 passed**: all12 packaging tests
+on Mac with real qemu-img, template YAML, USB/DMA/DART and shared platform/harness
+typechecks. Candidate/ready proof now requires a live guest and frame and rejects
+persisted panic observations. Private capture may observe up to14400seconds;
+ordinary restore default remains10800. Runtime app sources remain unchanged from
+the active a2a81f2 run. HVF probe verification39245757011 also completed successfully;
+its report still says HV_UNSUPPORTED, not available acceleration.
+At14:48 Moscow active restore **39237004400** is at System image65%; continue
+watcher59928 and inspect its real result. No second full restore was started.
+Next delivery work is a clean normal cold-boot check of the retained closed VM,
+plus verified import; neither packaging checks nor an unverified candidate is UI proof.

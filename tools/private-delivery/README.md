@@ -29,3 +29,11 @@ kit with `tools/vm_bundle.py`. Do not relabel a logo or compiled IPA as SpringBo
 
 An explicit promotion/private download workflow and iPhone import verification
 still need to be completed. This template has not performed a real private capture.
+
+After retaining the candidate, the workflow stages its checked archive into a
+new Documents folder, with no setup downloads or restore checkpoint. A second
+app invocation uses `INFERNO_SMOKE_MODE=cold-boot`: normal `VMModel.start()`,
+no call to AutomaticSetup and no restore ramdisk. It observes for15minutes after
+startup (30minute limit) and exports bounded JSON/PNG separately. A frame still
+requires visual inspection; automatic success never claims SpringBoard.
+The original captured archive remains unchanged if this cold boot fails.

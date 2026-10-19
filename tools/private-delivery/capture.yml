@@ -80,6 +80,15 @@ jobs:
           path: UNVERIFIED.inferno-vm-candidate.zip
           retention-days: 3
           if-no-files-found: error
+      - name: Stage only the retained machine files in a fresh Documents folder
+        run: python3 tools/private-delivery/stage_candidate.py "$PWD/UNVERIFIED.inferno-vm-candidate.zip" "$PWD/private-cold-boot-data"
+      - name: Cold boot the transferred QCOW2 without automatic setup or restore ramdisk
+        env:
+          INFERNO_TEST_DOCUMENTS: ${{ github.workspace }}/private-cold-boot-data
+          INFERNO_SMOKE_OUTPUT: ${{ github.workspace }}/cold-boot-evidence
+          INFERNO_SMOKE_MODE: cold-boot
+          INFERNO_SMOKE_BUDGET_SECONDS: "1800"
+        run: ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -87,4 +96,6 @@ jobs:
           path: |
             smoke-evidence/*.json
             smoke-evidence/*.png
+            cold-boot-evidence/*.json
+            cold-boot-evidence/*.png
           if-no-files-found: ignore
