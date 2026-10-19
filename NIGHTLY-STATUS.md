@@ -184,10 +184,18 @@ Socket test requires data ACK before FIN, verifies FIN sequence/flags, then
 FIN ACK and no extra RST. Report adds `asr_payload_and_fin_acknowledged`.
 This is not yet runtime validated. Backend stays **d1fb886**, IPA **37d6816**.
 
-Active ASR graceful-close restore **39188070550**, app **e69acff**, backend
-**d1fb886**. Verification **39187942272** passed socket tests (including
-data-ACK -> FIN -> FIN-ACK -> no RST); typechecks still running at checkpoint.
-Inspect these results before a replacement; do not duplicate this restore.
+ASR graceful-close restore **39188070550**, app **e69acff**, backend **d1fb886**
+failed after 3025 seconds: full payload sent, then guest went away while
+waiting for ASR close acknowledgement. No restored FIN/RST, no DART/panic,
+FUD not yet reached. Verification **39187942272 passed**.
+
+Next app allows ASR peer close *after the complete payload only* to return to
+the restored protocol loop. It does not call it successful delivery or restore;
+restored progress/error/final StatusMsg remains authoritative. Other finish
+errors still fail. A graceful FIN still must be acknowledged, and report
+distinguishes peer close from acknowledged FIN. TCP close logs bounded port
+and outstanding byte count. Socket test also checks peer RST is surfaced as
+gone, never mislabeled acknowledged FIN. Keep backend **d1fb886** fixed.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source

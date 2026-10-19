@@ -83,7 +83,7 @@ try verify(512)
 try verify(512, truncate: true)
 try verify(512, inError: true)
 
-func verifyGracefulClose() throws {
+func verifyGracefulClose(peerReset: Bool = false) throws {
     var pair: [Int32] = [0, 0]
     precondition(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
     let done = DispatchSemaphore(value: 0)
@@ -91,7 +91,7 @@ func verifyGracefulClose() throws {
         defer { Darwin.close(pair[1]); done.signal() }
         // The final three data bytes remain unacknowledged at entry. The
         // host must poll for their ACK before FIN, then wait for FIN's ACK.
-        for stage in 0..<3 {
+        for stage in 0..<(peerReset ? 1 : 3) {
             let request = readExactly(pair[1], 23)!
             let incoming = request[2] == 0x69
             let wanted = Int(request[21]) | Int(request[22]) << 8
@@ -102,6 +102,7 @@ func verifyGracefulClose() throws {
                 let ack: UInt8 = stage == 0 ? 3 : 4
                 body = [0,0,0,6, 0,0,0,36, 254,237,250,206, 0,UInt8(stage),0,0,
                         48,57,240,1, 0,0,0,1, 0,0,0,ack, 80,16, 4,0,0,0,0,0]
+                if peerReset { body[29] = 4 }
             } else {
                 precondition(payload.count == 36 && payload[29] == 0x11,
                              "Close must send FIN|ACK, never RST")
@@ -117,9 +118,15 @@ func verifyGracefulClose() throws {
         precondition(readExactly(pair[1], 1) == nil)
     }
     let usb = GuestUSB(testSocket: pair[0])
-    try usb.testFinish()
+    do {
+        try usb.testFinish()
+        precondition(!peerReset, "peer RST must not be labelled an acknowledged FIN")
+    } catch GuestUSB.Failure.gone {
+        precondition(peerReset)
+    }
     Darwin.close(pair[0])
     precondition(done.wait(timeout: .now()+10) == .success)
 }
 try verifyGracefulClose()
+try verifyGracefulClose(peerReset: true)
 print("Real GuestUSB: full frame preserved across descriptor boundaries, NAK retries and short-OUT rejection passed")

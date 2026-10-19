@@ -528,8 +528,16 @@ final class RestoreClient {
             }
         }
         note(L("Рестор: образ системы отдан целиком"))
-        try channel.finish()
-        note("RESTORE-ASR: payload and FIN acknowledged")
+        do {
+            try channel.finish()
+            note("RESTORE-ASR: payload and FIN acknowledged")
+        } catch GuestUSB.Failure.gone {
+            // ASR reads a fixed payload length and can close its socket as
+            // soon as it finishes. This is not the restore's final status.
+            // Keep reading restored; its progress/error/final StatusMsg must
+            // decide whether the completed transfer was accepted.
+            note("RESTORE-ASR: peer closed after full payload; awaiting restored status")
+        }
     }
 
     /// Knocks on the ASR port until it answers.

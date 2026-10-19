@@ -882,9 +882,13 @@ final class GuestUSB {
                 muxLock.lock()
                 let drained = channel.txSeq == channel.txAcked
                 let dead = channel.closed
+                let outstanding = channel.txSeq &- channel.txAcked
                 muxLock.unlock()
                 if drained { return }
-                if dead { throw Failure.gone }
+                if dead {
+                    LogCapture.shared.note("USB-TCP-CLOSE: peer closed port=\(channel.remotePort) outstanding=\(outstanding)")
+                    throw Failure.gone
+                }
                 guard Date() < deadline else { throw Failure.usb("TCP close acknowledgement timed out") }
                 try resendIfStuck(channel)
                 try serviceMux(timeout: 0.2)
