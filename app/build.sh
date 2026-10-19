@@ -158,13 +158,16 @@ cp -R "$KEYMAPS" "$APP/qemu-data/keymaps"
 # Local builds get the real one; INFERNO_NO_ICON=1 skips both (app ships
 # with no icon at all).
 compile_icon() { # compile_icon <catalog-dir> <app-icon-name>
-    xcrun actool --compile "$APP" \
+    if ! xcrun actool --compile "$APP" \
         --platform iphoneos \
         --minimum-deployment-target 16.0 \
         --app-icon "$2" \
         --output-partial-info-plist "$BUILD/icon.plist" \
         --include-all-app-icons \
-        "$1" > /dev/null
+        "$1" >"$BUILD/actool-compile.log" 2>&1; then
+        cat "$BUILD/actool-compile.log" >&2
+        return 1
+    fi
     python3 - "$APP/Info.plist" "$BUILD/icon.plist" <<'PY'
 import plistlib, sys
 target, partial = sys.argv[1], sys.argv[2]
@@ -181,7 +184,11 @@ FALLBACK_ICON="$ROOT/Resources/Assets.xcassets"
 if [ -z "${INFERNO_NO_ICON:-}" ]; then
     # The probe compiles into the build directory, not /tmp, so nothing is left behind.
     mkdir -p "$BUILD/actool-probe"
-    if [ -d "$ICON" ] && xcrun actool --version >/dev/null 2>&1 && \
+    # Xcode16 can return success for the minimal .icon probe but fail the
+    # actual iPhone compile. Icon Composer support requires Xcode26 or newer.
+    XCODE_MAJOR="$(xcodebuild -version | awk '/^Xcode / {split($2, v, "."); print v[1]; exit}')"
+    if [[ "$XCODE_MAJOR" =~ ^[0-9]+$ ]] && (( XCODE_MAJOR >= 26 )) && \
+       [ -d "$ICON" ] && xcrun actool --version >/dev/null 2>&1 && \
        xcrun actool --compile "$BUILD/actool-probe" --app-icon Inferno "$ICON" >"$BUILD/actool-probe.log" 2>&1; then
         echo "==> Иконка (Icon Composer)"
         compile_icon "$ICON" Inferno
