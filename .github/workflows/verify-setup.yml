@@ -9,6 +9,10 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Verify private VM transfer file selection and integrity checks
+        run: |
+          brew list qemu >/dev/null 2>&1 || brew install qemu
+          python3 tests/automatic-setup/test_vm_bundle.py
       - name: Verify real Swift download and firmware identity validation
         run: |
           swiftc app/Sources/AutomaticSetupProfile.swift tests/automatic-setup/main.swift -o /tmp/inferno-setup-tests
