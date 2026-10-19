@@ -19,6 +19,7 @@ def main():
     args = parser.parse_args()
     logs = args.vm / 'boot-logs'
     last_bucket = None
+    pause_reported = False
     deadline = time.monotonic() + 30 * 60
     while time.monotonic() < deadline:
         console = tail(logs / 'guest-console.log')
@@ -28,7 +29,12 @@ def main():
             return
         status = execute('query-status')
         if not status.get('running'):
-            raise RuntimeError('VM is paused; refusing to resume it')
+            if not pause_reported:
+                print('VM paused by another operation; observing only, never resuming it.', flush=True)
+                pause_reported = True
+            time.sleep(15)
+            continue
+        pause_reported = False
         execute('screendump', {'filename': '/vm/boot-logs/observed.ppm'})
         with Image.open(logs / 'observed.ppm') as raw:
             frame = raw.convert('RGB')
