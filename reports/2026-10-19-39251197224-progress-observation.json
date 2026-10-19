@@ -1,0 +1,17 @@
+{
+  "run": 39251197224,
+  "app_commit": "10ef170939c0abbfbc73e29291fc843719d5e3e3",
+  "backend_commit": "b533085982f346a954b4ce8e27a827b04d64b3ce",
+  "source": "visible live Actions progress, reloaded to exclude stale view",
+  "last_visible_phase": "System image",
+  "last_visible_progress_bucket_percent": 35,
+  "first_observed_at_bucket_moscow": "2026-10-19T16:28:00+03:00",
+  "still_observed_at_bucket_moscow": "2026-10-19T16:57:00+03:00",
+  "fine_grained_progress_available": false,
+  "full_guest_diagnostic_report_available": false,
+  "deadlock_proven": false,
+  "restore_completion_confirmed": false,
+  "visible_springboard_confirmed": false,
+  "cancellation_requested": true,
+  "reason": "Replace with instrumented same-runtime restore; current run cannot reveal host wait or actual fine-grained progress until final report. No causal claim from the progress bucket alone."
+}

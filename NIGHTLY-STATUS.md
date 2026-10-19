@@ -581,3 +581,20 @@ counts are exported. Raw sample/address/path/arguments stay in deleted temporary
 local storage; never guest memory or raw logs. Python privacy test passed locally,
 native Mac sample check and Swift harness typecheck pending in CI. Runtime app/
 and backend remain unchanged, delivered IPA still matches the current restore.
+
+Watchdog verification **39263989160 PASSED**, app diagnostics source
+**ddd6fb883bc6d8e2c0726757b083392d186eac9d**: real native sample of own Mac child
+returned exit0 (not merely parser fixtures), privacy checks and Swift harness/
+platform checks passed. Prior superseded check39263886672 was cancelled to avoid
+duplicate checks; initial39263288815 passed. Runtime `app/` diff from10ef170 is0.
+Fixed bounded counters are printed in LIVE Actions output, not just final artifacts.
+
+At16:57Moscow requested cancellation of **39251197224**, after image35% bucket
+unchanged for at least29minutes. This is NOT proof of deadlock or of the cause;
+the old harness exposes no fine-grained progress/host stacks. Bounded observation
+saved in reports/2026-10-19-39251197224-progress-observation.json. No VM was claimed
+restored or retained. Replacement will run the same runtime/backend, adding
+progress-aware stack observation to avoid another blind multi-hour wait.
+Private workflow **e7b4963** now contains watchdog wrapper. Wait for old run to
+finish cancelling BEFORE dispatching one capture with app_refddd6fb883bc6d8e2c0726757b083392d186eac9d,
+backendb533085982f346a954b4ce8e27a827b04d64b3ce. Do not duplicate active restores.
