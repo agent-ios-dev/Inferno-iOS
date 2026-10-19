@@ -30,6 +30,11 @@ def export(vm, destination, proof_path, image):
         raise ValueError('Visible working UI and separate cold boot are not confirmed')
     if not re.fullmatch(r'[0-9a-f]{40}', proof.get('backend_commit', '')):
         raise ValueError('Proof must identify the exact tested backend commit')
+    configuration = proof.get('boot_configuration', {})
+    if (configuration.get('total_cores') not in range(2, 8)
+            or configuration.get('memory') not in ('2G', '3G', '4G')
+            or configuration.get('restore_ramdisk_attached') is not False):
+        raise ValueError('Proof must record tested CPU/memory settings and no restore RAMdisk')
     if destination.exists() or destination == vm or vm in destination.parents:
         raise ValueError('Use a new output folder outside the VM')
     if any((parent / '.git').exists() for parent in [destination, *destination.parents]):
@@ -90,6 +95,7 @@ def export(vm, destination, proof_path, image):
             hashes[name] = {'bytes': (destination / name).stat().st_size,
                             'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()}
     metadata = {'profile': prepared['profile'], 'backend_commit': proof['backend_commit'],
+                'boot_configuration': configuration,
                 'root_virtual_bytes': DISKS['root'], 'root_sector_comparison_passed': True,
                 'files': hashes, 'boot_evidence': proof,
                 'physical_iphone_boot_verified': proof.get('physical_iphone_boot_verified', False)}
