@@ -461,3 +461,19 @@ existing NAK diagnostic, no extra DMA reads. Regression test extracts/runs actua
 dwc3_td_fetch and checks adjacent/ascending links, real cycles and HWO; baseline
 d5 is a negative control. CI verification pending; do not claim this caused the
 observed stall or promote to production yet. No duplicate full restore active.
+
+Verification **39249074324 PASSED** for app **f0142f66d7c97f1510025128b349deb8b6620374**:
+actual TRB fetch tests accepted adjacent/ascending chains, stopped real cycles,
+respected HWO; the original d5 backend FAILED the negative control as expected.
+DMA/DART/socket checks,15 packaging/staging tests, PID parser and both platform/
+harness typechecks passed. This proves the code defect/regression, not guest UI.
+
+One new full restore was dispatched to approved private **Inferno-VM**:
+**39249482181**, workflow **360f6006cb82f6416de46489cf3e597d2337494b**,
+app **f0142f66d7c97f1510025128b349deb8b6620374**, backend
+**1ec087f2746bbd23f18cc1ae1736451a27e11ed3**. Currently queued at15:07Moscow.
+Do not duplicate. It builds the actual Mac library, restores from no files,
+retains a closed candidate privately only after completion, then cold-boots a
+separate verified copy without restoring again. Inspect both JSON/PNG outputs;
+no automatic SpringBoard claim. Native build/real restore still pending; iPhone
+library builds and real device import remain unverified, production pin37 unchanged.
