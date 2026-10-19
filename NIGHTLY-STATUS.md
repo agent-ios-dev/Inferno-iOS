@@ -598,3 +598,11 @@ progress-aware stack observation to avoid another blind multi-hour wait.
 Private workflow **e7b4963** now contains watchdog wrapper. Wait for old run to
 finish cancelling BEFORE dispatching one capture with app_refddd6fb883bc6d8e2c0726757b083392d186eac9d,
 backendb533085982f346a954b4ce8e27a827b04d64b3ce. Do not duplicate active restores.
+
+Old39251197224 confirmed completed/cancelled before replacement. New single
+private restore **39265025275** queued at17:00Moscow, exact app diagnostics
+**ddd6fb883bc6d8e2c0726757b083392d186eac9d**, backend **b533085982f346a954b4ce8e27a827b04d64b3ce**,
+private workflow **e7b4963**. No runtime app/backend change from the user IPA;
+extra diagnostics only. Watcher **74334**, file work/private-watch-39265025275.txt.
+Automation refreshed to this run. Watch LIVE `Host stall diagnostic` if progress
+stalls: bounded known host symbols only. Never interpret sample_exit0 as boot.
