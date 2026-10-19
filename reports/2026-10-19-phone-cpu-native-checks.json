@@ -1,0 +1,12 @@
+{
+  "native_check_run": 39298742719,
+  "runner": "macos-15-intel",
+  "ios_arm64_shared_sources_typecheck": "passed",
+  "macos_arm64_shared_sources_typecheck": "passed",
+  "settings_source_sha256_lf": "213030d46f4f1bd548a34f026751142e88fb376c8cc4192b66ff0fced6708894",
+  "applied_source_matches_checked_hash": true,
+  "total_core_choices": [2,4,5,7],
+  "default_total_cores": 4,
+  "full_ipa_build_completed": false,
+  "physical_iphone_jit_or_guest_boot_confirmed": false
+}

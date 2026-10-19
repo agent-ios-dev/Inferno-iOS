@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 
 path = Path(sys.argv[1]) / 'app/Sources/Settings.swift'
-source = path.read_text()
+source = path.read_text(encoding='utf-8')
 changes = {
     '''        // A count saved while 2 and 3 were still on offer would otherwise
         // reach the command line, and leave the picker with nothing selected.
@@ -20,7 +20,9 @@ changes = {
     static let coreChoices = [2, 4, 5, 7]'''
 }
 for old, new in changes.items():
+    if old not in source and source.count(new) == 1:
+        continue
     if source.count(old) != 1:
         raise ValueError('Settings candidate no longer matches the checked source')
     source = source.replace(old, new)
-path.write_text(source)
+path.write_text(source, encoding='utf-8')
