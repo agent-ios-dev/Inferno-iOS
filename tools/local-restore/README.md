@@ -93,3 +93,18 @@ System launchd-cache entries instead of blocking on encrypted Data. It rejects
 missing/duplicate labels and preserves unrelated plist values. Native CF tests
 are build-only checks; the generated helper still needs actual guest validation.
 Repeated runs must exclude `.InfernoOriginalBytes` from cache selection.
+
+`export_kit.py VM NEW_PRIVATE_FOLDER --proof EVIDENCE.json` prepares an installed
+phone kit only after visible SpringBoard and a separate cold boot were verified.
+It refuses live writable Docker mounts and output inside a Git repository.
+The root becomes compressed qcow2 (already accepted by the app), checked and
+sector-compared against the raw source; all eight secondary disks and the exact
+boot/ticket/SEP inputs are included and SHA-256 verified. Firmware archives,
+RAM disks, logs and analysis files are excluded. The ZIP is private delivery;
+never upload it to the public repository. Physical iPhone verification is a
+separate requirement and is not inferred from conversion or local boot.
+
+`watch_boot.py VM` observes the actual 828x1792 framebuffer and private console,
+prints bounded progress-row geometry, and saves frames for visual review. It
+never resets the VM, resumes a prior pause, or declares working UI automatically.
+It requires Pillow in the host Python runtime.

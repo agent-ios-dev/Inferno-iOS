@@ -1,0 +1,10 @@
+{
+  "test_scope": "disk-format transport check only; no guest iOS boot",
+  "synthetic_input_bytes": 16777216,
+  "native_qemu_img_convert": "passed",
+  "native_qemu_img_check": "passed",
+  "raw_vs_qcow2_sector_comparison": "identical",
+  "real_vm_export_attempt_without_ui_and_cold_boot_proof": "rejected before creating output",
+  "real_vm_exported": false,
+  "physical_iphone_tested": false
+}
