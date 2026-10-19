@@ -8,7 +8,7 @@ from pathlib import Path
 import zipfile
 
 
-def generate(app, ipa, output):
+def generate(app, ipa, output, patch_only=False):
     output.mkdir(parents=True, exist_ok=True)
     guest = output / 'guest'
     guest.mkdir(exist_ok=True)
@@ -24,6 +24,20 @@ def generate(app, ipa, output):
     if source.count(lookup) != 1:
         raise ValueError('Resource lookup changed; inspect source before adapting')
     source = source.replace(lookup, 'let bundle = URL(fileURLWithPath: CommandLine.arguments[3])')
+    if patch_only:
+        anchor = 'try volume.replace(jobPath, with: job, mode: 0o644)'
+        if source.count(anchor) != 1:
+            raise ValueError('Ramdisk job insertion changed')
+        source = source.replace(anchor, anchor + '''
+        // Recovery-only image: never launch the stock restore server or its
+        // host-wait timeout. Existing patcher job remains enabled.
+        let disabled = try PropertyListSerialization.data(fromPropertyList:
+            ["Label": "com.apple.restored_external", "Disabled": true,
+             "ProgramArguments": ["/usr/local/bin/restored_external"]] as [String: Any],
+            format: .xml, options: 0)
+        try volume.replace("/System/Library/LaunchDaemons/com.apple.restored_external.plist",
+                           with: disabled, mode: 0o644)
+''')
     compatibility = '''
 func L(_ format: String, _ arguments: CVarArg...) -> String {
     String(format: format, arguments: arguments)
@@ -45,5 +59,6 @@ if __name__ == '__main__':
     parser.add_argument('app', type=Path)
     parser.add_argument('ipa', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--patch-only', action='store_true')
     args = parser.parse_args()
-    generate(args.app, args.ipa, args.output)
+    generate(args.app, args.ipa, args.output, args.patch_only)

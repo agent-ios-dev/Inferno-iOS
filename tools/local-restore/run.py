@@ -34,19 +34,20 @@ def main():
             raise ValueError('Patch-only recovery requires recorded successful restore')
     logs = root / ('patch-only-logs' if args.patch_only else 'restore-logs' if args.restore else 'boot-logs')
     logs.mkdir(exist_ok=True)
-    if recovery and not (root / 'patched-ramdisk.im4p').is_file():
+    ramdisk = root / ('patch-only-ramdisk.im4p' if args.patch_only else 'patched-ramdisk.im4p')
+    if recovery and not ramdisk.is_file():
         raise ValueError('Patched restore ramdisk missing')
     machine = ['t8030', 'usb-uplink-type=inferno', 'usb-uplink-addr=unix:/tmp/iusb.sock',
         'trustcache=' + str(data / 'Restore' / prepared['trustcache']),
         'ticket=' + str(data / 'root_ticket.der'),
         'sep-fw=' + str(data / 'sep-firmware.n104.RELEASE.new.img4'),
         'sep-rom=' + str(root / 'AppleSEPROM-Cebu-B1'), 'kaslr-off=true',
-        'boot-mode=' + ('enter_recovery' if recovery else 'exit_recovery'),
+        'boot-mode=' + ('enter_recovery' if args.restore else 'exit_recovery'),
         'disp-width=828', 'disp-height=1792', 'disp-scale=2']
     command = ['qemu-system-aarch64', '-L', '/vm/qemu-data', '-M', ','.join(machine),
         '-kernel', str(data / 'Restore' / prepared['kernel']),
         '-dtb', str(data / 'Restore' / prepared['device_tree']),
-        '-append', 'tlto_us=-1 agm-genuine=1 agm-authentic=1 agm-trusted=1 serial=3 wdt=-1 launchd_unsecure_cache=1 -vm_compressor_wk_sw',
+        '-append', ('rd=md0 ' if args.patch_only else '') + 'tlto_us=-1 agm-genuine=1 agm-authentic=1 agm-trusted=1 serial=3 wdt=-1 launchd_unsecure_cache=1 -vm_compressor_wk_sw',
         '-smp', '7', '-m', '3G', '-accel', 'tcg,thread=multi',
         '-display', 'none', '-vnc', '0.0.0.0:0',
         '-qmp', 'tcp:0.0.0.0:4444,server=on,wait=off',
@@ -62,7 +63,7 @@ def main():
     command += ['-drive', f'file={data / "nvram"},if=none,format=raw,id=nvram',
         '-device', 'apple-nvram,drive=nvram,bus=nvme-bus.0,nsid=5,nstype=5,id=nvram,logical_block_size=4096,physical_block_size=4096']
     if recovery:
-        command += ['-initrd', str(root / 'patched-ramdisk.im4p'),
+        command += ['-initrd', str(ramdisk),
             '-global', 'driver=apple-smc,property=hold-reset,value=on']
     children = []
     handles = []
