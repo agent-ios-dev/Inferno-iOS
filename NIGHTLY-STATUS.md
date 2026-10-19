@@ -369,3 +369,14 @@ USB/DMA/DART checks, iOS/macOS/harness typechecks. Locally Windows passed7,
 skipped symlink privilege and unavailable qemu-img; CI ran all9 without skips.
 Public restore **39237004400** remains active, last visible System image10%.
 It still tests app **a2a81f2**, unchanged backend **d5dcc2f**; no duplicate run.
+
+Private delivery provisioning is awaiting an explicit user answer. Auto-review
+rejected creation of a new `agent-ios-dev/Inferno-VM` private repository/local
+checkout: general project permission did not explicitly cover that new storage
+destination for guest disks. No repo was created, no disk uploaded. A targeted
+async question is pending: allow that private repo and private Actions artifacts,
+or keep the kit local only. Do not retry/re-route around that rejection without
+specific consent. This does not block the active public JSON/PNG-only restore.
+The active CLI watcher is session59928 (gh run watch39237004400), redirects
+routine status to local work/restore-watch-39237004400.txt. Keep waiting for its
+actual result; do not treat pending private storage consent as a boot blocker.
