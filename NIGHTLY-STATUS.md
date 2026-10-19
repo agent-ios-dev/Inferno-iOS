@@ -354,3 +354,18 @@ VM transfer bundle and matching IPA. It replaces the deleted nightly schedule.
 The current public diagnostic workflow still exports JSON/PNG only; it does
 not retain or deliver guest disks. Once UI is proved, prepare/verify the full
 transfer via a private/local route, not by adding raw disks to public artifacts.
+
+Transfer tooling **e734140**: `tools/vm_bundle.py` creates a local/private
+standalone QCOW2+ZIP64 machine kit, selected boot files and all SEP/NVRAM/state
+disks together; SHA256/size manifest and exclusive atomic final publication.
+Requires explicit stopped-machine acknowledgement and actual confirmed boot
+proof; refuses incomplete proof/overwrite. No raw guest disk was uploaded.
+`VM-TRANSFER.md` records current limits: no verified guest kit, in-app archive
+import still absent; ZIP64 requires Files/external extraction for now. Do not
+present the packer as a running machine or as verified iPhone import.
+Verification **39238827700 passed**, all9 synthetic-fixture packaging tests on
+Mac including real qemu-img convert/check/no backing-file, plus existing actual
+USB/DMA/DART checks, iOS/macOS/harness typechecks. Locally Windows passed7,
+skipped symlink privilege and unavailable qemu-img; CI ran all9 without skips.
+Public restore **39237004400** remains active, last visible System image10%.
+It still tests app **a2a81f2**, unchanged backend **d5dcc2f**; no duplicate run.
