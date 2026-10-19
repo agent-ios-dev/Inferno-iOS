@@ -184,6 +184,11 @@ Socket test requires data ACK before FIN, verifies FIN sequence/flags, then
 FIN ACK and no extra RST. Report adds `asr_payload_and_fin_acknowledged`.
 This is not yet runtime validated. Backend stays **d1fb886**, IPA **37d6816**.
 
+Active ASR graceful-close restore **39188070550**, app **e69acff**, backend
+**d1fb886**. Verification **39187942272** passed socket tests (including
+data-ACK -> FIN -> FIN-ACK -> no RST); typechecks still running at checkpoint.
+Inspect these results before a replacement; do not duplicate this restore.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
