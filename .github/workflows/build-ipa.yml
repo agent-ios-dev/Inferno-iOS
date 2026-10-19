@@ -16,6 +16,11 @@ on:
       emulator_ref:
         description: "Pinned commit of agent-ios-dev/Inferno with restore boot handoff"
         default: "37d68169800a2e41de7da7e96478a15ac4431ca7"
+      runner_label:
+        description: "Mac build pool (Intel avoids ARM runner capacity delays)"
+        type: choice
+        options: [macos-26, macos-15-intel]
+        default: macos-26
 
 concurrency:
   group: ipa-${{ github.ref }}
@@ -26,7 +31,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: ${{ inputs.runner_label || 'macos-26' }}
     env:
       EMULATOR_REF: ${{ github.event.inputs.emulator_ref || '37d68169800a2e41de7da7e96478a15ac4431ca7' }}
       PREFIX: ${{ github.workspace }}/prefix
@@ -104,15 +109,40 @@ jobs:
 
       - name: Build Inferno.ipa
         working-directory: app
-        env:
-          # build.sh probes actool itself and falls back to the flat
-          # Assets.xcassets icon when Inferno.icon (Xcode 26+) isn't supported.
-          INFERNO_KEYMAPS: /opt/homebrew/share/qemu/keymaps
-        run: ./build.sh
+        # build.sh probes actool and supports both installed icon formats.
+        run: INFERNO_KEYMAPS="$(brew --prefix)/share/qemu/keymaps" ./build.sh
+
+      - name: Record exact sources and debugger entitlement
+        run: |
+          app="app/.build/Payload/Inferno.app"
+          codesign --verify --strict "$app"
+          codesign -d --entitlements :- "$app" > /tmp/inferno-entitlements.plist
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, plistlib, subprocess, zipfile
+          ent = plistlib.loads(pathlib.Path('/tmp/inferno-entitlements.plist').read_bytes())
+          assert ent.get('get-task-allow') is True, 'StikDebug attachment entitlement missing'
+          ipa = pathlib.Path('app/Inferno.ipa')
+          with zipfile.ZipFile(ipa) as archive:
+              assert archive.testzip() is None
+              names = archive.namelist()
+              assert any(n.endswith('/qemu-data/keymaps/en-us') for n in names)
+              assert any(n.endswith('/Frameworks/libqemu-aarch64-softmmu.dylib') for n in names)
+          report = {
+              'app_commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'backend_commit': subprocess.check_output(['git','-C','inferno-src','rev-parse','HEAD'],text=True).strip(),
+              'ipa_sha256': hashlib.sha256(ipa.read_bytes()).hexdigest(),
+              'ipa_bytes': ipa.stat().st_size, 'get_task_allow': True,
+              'physical_iphone_jit_verified': False, 'guest_ui_verified_by_build': False
+          }
+          assert report['backend_commit'] == os.environ['EMULATOR_REF']
+          pathlib.Path('app/Build-evidence.json').write_text(json.dumps(report,indent=2))
+          PY
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Inferno-ipa
-          path: app/Inferno.ipa
+          path: |
+            app/Inferno.ipa
+            app/Build-evidence.json
           if-no-files-found: error
