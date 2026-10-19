@@ -344,3 +344,13 @@ harness budget to10800 seconds and workflow to210min to permit full transfer,
 patching/reset and900sec normal-boot observation. Harness now retains fixed
 ASR/restored event flags across log rotation, never raw logs. This changes
 test observation only; no fabricated success or promoted production backend.
+
+Active extended-budget restore **39237004400**, app **a2a81f2**, backend
+**d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67**. Verification **39237004346**
+passed socket/DMA/DART steps; platform typechecks still running at checkpoint.
+Do not duplicate. Continuation automation **inferno-springboard-vm** is active
+in this chat every15min, no morning deadline, until verified UI plus private
+VM transfer bundle and matching IPA. It replaces the deleted nightly schedule.
+The current public diagnostic workflow still exports JSON/PNG only; it does
+not retain or deliver guest disks. Once UI is proved, prepare/verify the full
+transfer via a private/local route, not by adding raw disks to public artifacts.
