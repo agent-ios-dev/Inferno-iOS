@@ -140,6 +140,10 @@ ticket or key is exported. This locates RST during preparation vs sending vs
 waiting for the next request, and identifies which FUD request is implicated.
 Backend remains **d1fb886**, no new production IPA.
 
+Active FUD-phase restore **39182272475**, app **6e2038e**, backend **d1fb886**.
+Verification **39182174648** running at dispatch. Inspect these results before
+another restore; do not duplicate the active run.
+
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source
 typechecks and guest C syntax check). Check the newest verification as well.
