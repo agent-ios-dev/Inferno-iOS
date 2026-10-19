@@ -743,7 +743,7 @@ final class GuestUSB {
             if flags & 0x04 != 0 {                            // RST
                 LogCapture.shared.note("USB-TCP: guest reset channel port=\(channel.remotePort)")
                 muxLock.lock(); channel.closed = true; channels[destination] = nil; muxLock.unlock()
-                continue
+                return
             }
             muxLock.lock()
             channel.peerWindow = Int(u16be(body, 14)) << 8
