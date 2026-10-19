@@ -487,3 +487,33 @@ be the real guest's stall. Backend **b533085982f346a954b4ce8e27a827b04d64b3ce**
 lets actual LST/HWO checks end fetching after the whole owned descriptor. Tests
 now cover multi-TRB terminal LST and HWO boundary, with 1ec087f as a separate
 negative control. Verification pending. No second concurrent restore dispatched.
+
+## USER-REQUESTED PAUSE — 19 October 2026, 15:16 Moscow
+
+User is restarting Codex and explicitly requested a pause. Do not start work or
+dispatch another run until the user resumes. Automation `inferno-springboard-vm`
+is confirmed **PAUSED** by automation_update. No running guest test remains:
+private run **39249482181** is confirmed **completed/cancelled**. Its original
+native Mac library/app build passed; it was cancelled to replace the independently
+reproduced terminal-TRB defect, not evidence of successful restore. No candidate
+disk/ready VM/working SpringBoard was produced. No replacement run was started.
+
+Latest verified runtime/test source app **10ef170939c0abbfbc73e29291fc843719d5e3e3**;
+backend **b533085982f346a954b4ce8e27a827b04d64b3ce**. Verification
+**39250089772 PASSED**, including actual complete terminal descriptor fetch,
+adjacent/ascending links, genuine loop stopping and ownership. Both earlier
+backends failed negative controls; DMA/DART/socket,15 transfer tests and shared
+iOS/macOS/harness checks passed. This is NOT real-restore or UI verification.
+Private workflow **360f6006cb82f6416de46489cf3e597d2337494b** remains provisioned
+in approved private Inferno-VM; main workflow input backend must be explicitly
+overridden, because its default is older d5. Production IPA still pins37d6816.
+
+After explicit resume: inspect actual Actions first; then dispatch exactly one
+private capture.yml with app_ref10ef170939c0abbfbc73e29291fc843719d5e3e3 and
+emulator_refb533085982f346a954b4ce8e27a827b04d64b3ce, unless newer evidence
+requires a change. It builds the native library, restores, retains only a closed
+completed candidate, then starts a separate cold copy normally (no restore).
+Inspect bounded JSON/PNG and actual screen; require real SpringBoard/backboardd.
+iPhone library builds/import and actual iPhone boot still need verification.
+Never publish firmware/disks/keys/raw guest logs in public repositories/artifacts.
+Worktrees are saved; only this checkpoint is newer than the last verified app SHA.
