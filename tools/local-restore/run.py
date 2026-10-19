@@ -21,6 +21,8 @@ def main():
     mode.add_argument('--restore', action='store_true')
     mode.add_argument('--patch-only', action='store_true',
                       help='Boot patched ramdisk on an installed disk; never run erase/restore')
+    parser.add_argument('--ssc-status-diagnostics', action='store_true',
+                        help='Bounded SEP controller command/result counters; diagnostic backend required')
     args = parser.parse_args()
     root = Path('/vm')
     data = root / 'InfernoData'
@@ -56,6 +58,8 @@ def main():
         '-audiodev', 'none,id=quiet', '-global', 'driver=apple.mca,property=audiodev,value=quiet']
     for name in ('sep_nvram', 'sep_ssc'):
         command += ['-drive', f'file={data / name},if=pflash,format=raw']
+    if args.ssc_status_diagnostics:
+        command += ['-global', 'driver=apple-sep.ssc,property=status-diagnostics,value=on']
     for name, nsid, nstype in [('root', 1, 1), ('firmware', 2, 2), ('syscfg', 3, 3),
                              ('ctrl_bits', 4, 4), ('effaceable', 6, 6), ('panic_log', 7, 8)]:
         command += ['-drive', f'file={data / name},format=raw,if=none,id={name}',

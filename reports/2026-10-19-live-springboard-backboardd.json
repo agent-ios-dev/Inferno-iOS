@@ -1,0 +1,39 @@
+{
+  "observed_utc": "2026-10-19T17:19:32.624249+00:00",
+  "source": "paused live exact-kernel process hash",
+  "read_only": true,
+  "kernel_sha256": "d465f40d37f233fd113c30b05801cdc6c648c4409c6842dc38aca9a53fd57d20",
+  "processes": [
+    {
+      "pid": 0,
+      "ppid": 0,
+      "name": "kernel_task",
+      "state": 2
+    },
+    {
+      "pid": 1,
+      "ppid": 0,
+      "name": "launchd",
+      "state": 2
+    },
+    {
+      "pid": 56,
+      "ppid": 1,
+      "name": "SpringBoard",
+      "state": 2
+    },
+    {
+      "pid": 59,
+      "ppid": 1,
+      "name": "backboardd",
+      "state": 2
+    }
+  ],
+  "springboard_process_seen": true,
+  "backboardd_process_seen": true,
+  "visible_springboard_confirmed": false,
+  "boot_mode": "normal, no restore RAMdisk or restore client",
+  "backend_runtime": "87af922 plus opt-in status counters aa1d928",
+  "physical_iphone_boot_verified": false,
+  "raw_memory_saved": false
+}
