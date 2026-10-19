@@ -543,3 +543,15 @@ Do not dispatch another. Clarified verification workflow name/run-name to
 SpringBoard/backboardd confused the owner into interpreting green checks as
 actual guest process evidence. Metadata only; no runtime behavior changed,
 no redundant verification run requested. Historical run titles remain historical.
+
+User now EXPLICITLY requested the IPA of the revision currently being tested,
+before SpringBoard proof. This supersedes the earlier inferred build-order
+restriction for this experimental IPA only; never label it working iOS.
+Exact app10ef170939c0abbfbc73e29291fc843719d5e3e3/backendb533085982f346a954b4ce8e27a827b04d64b3ce.
+GitHub workflow dispatch rejected a raw SHA ref (422), so an exact branch
+`build/current-10ef170-b533085` was created at that SHA, then IPA build
+**39257092574** dispatched successfully. No substitute runtime or production pin
+change. Await build, download actual Inferno-ipa artifact, check IPA contents and
+give the file with explicit unverified-SpringBoard status. Main private restore
+39251197224 continues separately; no duplicate restore. Watcher83242 is the
+original private run watch; outer exec38 was stopped, not the GitHub restore.
