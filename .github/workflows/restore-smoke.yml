@@ -37,7 +37,7 @@ jobs:
           mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources/guest"
           cp build/host/libqemu-aarch64-softmmu.dylib "$app/Contents/Frameworks/"
           echo 'enum BuildInfo { static let stamp = "restore smoke" }' > /tmp/InfernoBuildInfo.swift
-          xcrun swiftc -D INFERNO_RESTORE_SMOKE -O -parse-as-library -target arm64-apple-macos15.0 app/Sources/*.swift /tmp/InfernoBuildInfo.swift tests/automatic-setup/RestoreSmoke.swift -o "$app/Contents/MacOS/RestoreSmoke"
+          xcrun swiftc -D INFERNO_RESTORE_SMOKE -O -parse-as-library -target arm64-apple-macos15.0 app/Sources/*.swift /tmp/InfernoBuildInfo.swift tests/automatic-setup/BootProcessEvidence.swift tests/automatic-setup/RestoreSmoke.swift -o "$app/Contents/MacOS/RestoreSmoke"
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 app/guest/patcher-daemon.c -o "$app/Contents/Resources/guest/inferno_patcher"
           xcrun --sdk iphoneos clang++ -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -std=c++17 tools/InfernoFSPatcher/src/main.cpp -o "$app/Contents/Resources/guest/inferno_fs_patcher"

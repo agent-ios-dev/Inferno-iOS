@@ -25,6 +25,11 @@ import CoreGraphics
         var lastMessage = ""
         var lastProgressBucket = -1
         var finished = false
+        var processProbeInFlight = false
+        var processProbeAttempted = Date.distantPast
+        var processProbeAnswered = false
+        var processProbeSeconds = -1
+        var liveProcesses: [[String: Any]] = []
         var consoleOffset: UInt64 = 0
         var consolePartial = ""
         var patcherPhases = Set<String>()
@@ -104,6 +109,9 @@ import CoreGraphics
                 "test_mode": coldBoot ? "cold-boot" : "restore",
                 "restore_ramdisk_configured": model.isRestoring,
                 "installed_disk_detected": VMConfig.systemInstalled,
+                "process_probe_answered": processProbeAnswered,
+                "process_probe_seconds": processProbeSeconds,
+                "observed_processes": liveProcesses,
                 "seconds": Int(Date().timeIntervalSince(started)),
                 "execution_budget_seconds": Int(executionBudget), "setup_pending": setup.pending,
                 "setup_message": setup.message,
@@ -207,6 +215,36 @@ import CoreGraphics
             Task { @MainActor in
                 guard !finished else { return }
                 collectConsolePhases()
+                if coldBoot, !setup.pending, model.isRunning, !model.isRestoring,
+                   !processProbeInFlight, Date().timeIntervalSince(processProbeAttempted) >= 60 {
+                    let agent = model.guestAgent
+                    let serial = model.serial
+                    if agent != nil || serial.interactive {
+                        processProbeInFlight = true
+                        processProbeAttempted = Date()
+                        DispatchQueue.global(qos: .utility).async {
+                            var response: String?
+                            if let agent {
+                                if let job = agent.run(BootProcessEvidence.command, timeout: 20, capture: 2048),
+                                   job.done, job.status == 0, !job.timedOut, !job.stuck, !job.truncated {
+                                    response = job.output
+                                }
+                            } else {
+                                serial.ifFree {
+                                    response = GuestShell(serial: serial).text(BootProcessEvidence.command, timeout: 20)
+                                }
+                            }
+                            let parsed = response.flatMap(BootProcessEvidence.parse)
+                            DispatchQueue.main.async {
+                                processProbeInFlight = false
+                                guard !finished else { return }
+                                processProbeAnswered = parsed != nil
+                                processProbeSeconds = Int(Date().timeIntervalSince(started))
+                                liveProcesses = parsed ?? []
+                            }
+                        }
+                    }
+                }
                 let bucket = Int(max(0, min(1, setup.fraction)) * 20)
                 if setup.message != lastMessage || bucket != lastProgressBucket {
                     // No console, firmware bytes, SEP key values or raw memory
