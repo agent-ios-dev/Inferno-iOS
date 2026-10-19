@@ -66,7 +66,18 @@ jobs:
           INFERNO_TEST_DOCUMENTS: ${{ github.workspace }}/private-smoke-data
           INFERNO_SMOKE_OUTPUT: ${{ github.workspace }}/smoke-evidence
           INFERNO_SMOKE_BUDGET_SECONDS: "14400"
-        run: ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke
+        run: |
+          ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke &
+          smoke_pid=$!
+          python3 tools/restore_watchdog.py "$smoke_pid" "$INFERNO_SMOKE_OUTPUT" &
+          watchdog_pid=$!
+          trap 'kill "$watchdog_pid" 2>/dev/null || true' EXIT
+          set +e
+          wait "$smoke_pid"
+          smoke_exit=$?
+          kill "$watchdog_pid" 2>/dev/null || true
+          wait "$watchdog_pid" 2>/dev/null || true
+          exit "$smoke_exit"
       - name: Retain a closed restored candidate without claiming SpringBoard
         run: |
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true

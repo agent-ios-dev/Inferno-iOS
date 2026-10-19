@@ -565,3 +565,19 @@ diagnostic string. Bounded verification report committed in reports/. This is
 NOT physical iPhone testing or SpringBoard proof. User explicitly requested this
 experimental IPA now; provide local file. Production workflow default unchanged.
 Private restore39251197224 remains active; last observed system image25%.
+
+At16:45Moscow current run39251197224 still active, visible image35% unchanged
+since at least16:28. Browser reloaded to exclude stale UI; still35%. Do not infer
+healthy progress from a running job. Current runner cannot receive new code.
+Job-log API returned only completed build logs through12:20UTC, not the active
+restore's internal logs. Those local private files were NOT published. No
+candidate/diagnostic artifacts yet. Await actual final report before causal claims.
+
+Preparing host-only stall diagnostics for a FUTURE run, without duplicating or
+cancelling this restore: test harness writes atomic bounded progress timestamps;
+watchdog samples the explicit fresh test process after600seconds without actual
+fraction/message progress, at most3 times. Only fixed known host function-name
+counts are exported. Raw sample/address/path/arguments stay in deleted temporary
+local storage; never guest memory or raw logs. Python privacy test passed locally,
+native Mac sample check and Swift harness typecheck pending in CI. Runtime app/
+and backend remain unchanged, delivered IPA still matches the current restore.

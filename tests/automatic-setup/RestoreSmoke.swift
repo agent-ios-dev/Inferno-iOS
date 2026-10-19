@@ -24,6 +24,8 @@ import CoreGraphics
         var restoredAt: Date?
         var lastMessage = ""
         var lastProgressBucket = -1
+        var lastObservedFraction = -1.0
+        var lastProgress = Date()
         var finished = false
         var processProbeInFlight = false
         var processProbeAttempted = Date.distantPast
@@ -227,6 +229,18 @@ import CoreGraphics
             Task { @MainActor in
                 guard !finished else { return }
                 collectConsolePhases()
+                if setup.message != lastMessage || abs(setup.fraction - lastObservedFraction) > 0.000001 {
+                    lastProgress = Date()
+                    lastObservedFraction = setup.fraction
+                }
+                let live: [String: Any] = ["format": 1,
+                    "elapsed_seconds": Int(Date().timeIntervalSince(started)),
+                    "last_progress_age_seconds": Int(Date().timeIntervalSince(lastProgress)),
+                    "setup_fraction": setup.fraction, "setup_pending": setup.pending,
+                    "machine_running": model.isRunning, "guest_frame_received": model.picture.image != nil]
+                if let data = try? JSONSerialization.data(withJSONObject: live, options: [.sortedKeys]) {
+                    try? data.write(to: output.appendingPathComponent("smoke-live.json"), options: .atomic)
+                }
                 if coldBoot, !setup.pending, model.isRunning, !model.isRestoring,
                    !processProbeInFlight, Date().timeIntervalSince(processProbeAttempted) >= 60 {
                     let agent = model.guestAgent

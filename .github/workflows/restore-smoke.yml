@@ -50,7 +50,18 @@ jobs:
         env:
           INFERNO_TEST_DOCUMENTS: ${{ github.workspace }}/private-smoke-data
           INFERNO_SMOKE_OUTPUT: ${{ github.workspace }}/smoke-evidence
-        run: ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke
+        run: |
+          ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke &
+          smoke_pid=$!
+          python3 tools/restore_watchdog.py "$smoke_pid" "$INFERNO_SMOKE_OUTPUT" &
+          watchdog_pid=$!
+          trap 'kill "$watchdog_pid" 2>/dev/null || true' EXIT
+          set +e
+          wait "$smoke_pid"
+          smoke_exit=$?
+          kill "$watchdog_pid" 2>/dev/null || true
+          wait "$watchdog_pid" 2>/dev/null || true
+          exit "$smoke_exit"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
