@@ -106,7 +106,8 @@ class BundleTests(unittest.TestCase):
         self.fixture()
         proof = self.root / "proof.json"
         proof.write_text(json.dumps({"profile": vm.PROFILE, "visible_springboard_confirmed": True,
-                                   "patcher_done": True, "setup_pending": False, "guest_kernel_panic": False}))
+                                   "patcher_done": True, "setup_pending": False, "guest_kernel_panic": False,
+                                   "machine_running": True, "guest_frame_received": True}))
         output = self.root / "machine.zip"
         vm.create(self.root, output, proof, "a" * 40, "b" * 40, True, "qemu-img")
         verified = vm.verify(output)
@@ -144,7 +145,8 @@ class BundleTests(unittest.TestCase):
         report = self.root / "report.json"
         report.write_text(json.dumps({"profile": vm.PROFILE, "setup_pending": False,
                                      "guest_kernel_panic": False, "observed_guest_phases": ["done"],
-                                     "visible_springboard_confirmed": False}))
+                                     "visible_springboard_confirmed": False,
+                                     "machine_running": True, "guest_frame_received": True}))
         output = self.root / "candidate.zip"
         self.capture_module().capture(self.root, report, output, "a" * 40, "b" * 40, True)
         with zipfile.ZipFile(output) as bundle:
@@ -153,6 +155,19 @@ class BundleTests(unittest.TestCase):
             self.assertEqual(meta["kind"], "unverified-vm-candidate-v1")
         with self.assertRaisesRegex(ValueError, "Not a verified"):
             vm.verify(output)
+
+    def test_crashed_guest_or_missing_frame_is_not_ready(self):
+        valid = {"profile": vm.PROFILE, "visible_springboard_confirmed": True,
+                 "patcher_done": True, "setup_pending": False, "guest_kernel_panic": False,
+                 "machine_running": True, "guest_frame_received": True}
+        proof = self.root / "proof.json"
+        for field in ("machine_running", "guest_frame_received"):
+            proof.write_text(json.dumps(dict(valid, **{field: False})))
+            with self.assertRaises(ValueError):
+                vm.create(self.root, self.root / "out.zip", proof, "a" * 40, "b" * 40, True, "missing-qemu-img")
+        proof.write_text(json.dumps(dict(valid, observed_guest_phases=["panic"])))
+        with self.assertRaises(ValueError):
+            vm.create(self.root, self.root / "out.zip", proof, "a" * 40, "b" * 40, True, "missing-qemu-img")
 
 
 if __name__ == "__main__":

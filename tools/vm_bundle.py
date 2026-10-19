@@ -123,7 +123,9 @@ def create(documents, output, proof, app_commit, backend_commit, shutdown_confir
     evidence = json.loads(proof.read_text(encoding="utf-8-sig"))
     if (evidence.get("profile") != PROFILE or evidence.get("visible_springboard_confirmed") is not True
             or evidence.get("patcher_done") is not True or evidence.get("setup_pending") is not False
-            or evidence.get("guest_kernel_panic") is not False):
+            or evidence.get("guest_kernel_panic") is not False
+            or "panic" in evidence.get("observed_guest_phases", [])
+            or evidence.get("machine_running") is not True or evidence.get("guest_frame_received") is not True):
         raise ValueError("Confirmed SpringBoard and completed restore evidence is required")
     files, source = collect_files(documents)
     if output.exists():

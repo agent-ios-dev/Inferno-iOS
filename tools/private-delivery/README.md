@@ -1,13 +1,14 @@
 # Private candidate retention proposal
 
-This is source preparation, not a deployed private storage destination.
-Creation of `agent-ios-dev/Inferno-VM` was rejected by automatic approval review;
-specific owner consent is pending in the chat. Do not create that repository or
-use another destination to work around the rejection. No guest disks have been
-uploaded. The public restore test remains independent of this proposal.
+The owner explicitly approved `agent-ios-dev/Inferno-VM` and private Actions
+artifacts on19October2026. That repository has been created, verified private,
+and provisioned with the manual capture workflow. No real capture has been
+dispatched yet and no guest disks have been uploaded. The earlier automatic
+approval rejection was resolved by that specific consent; do not assume consent
+for a different storage destination. The public restore remains independent.
 
-After explicit approval, the proposed private repository would contain this
-workflow as `.github/workflows/capture.yml`. It must remain private. The template
+The private repository uses this workflow as `.github/workflows/capture.yml`.
+It must remain private. The template
 checks repository visibility at the job gate, before capture and before artifact
 upload. Source and backend inputs require exact full SHA values. Its source
 checkout uses the public app repository; it does not copy firmware into Git.

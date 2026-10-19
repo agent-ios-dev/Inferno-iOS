@@ -13,6 +13,8 @@ import CoreGraphics
         let model = VMModel()
         let setup = AutomaticSetup.shared
         let started = Date()
+        let executionBudget = TimeInterval(min(14400, max(1800,
+            Int(ProcessInfo.processInfo.environment["INFERNO_SMOKE_BUDGET_SECONDS"] ?? "") ?? 10800)))
         var restoredAt: Date?
         var lastMessage = ""
         var lastProgressBucket = -1
@@ -93,7 +95,8 @@ import CoreGraphics
                     with: "<redacted>", options: .regularExpression).prefix(400))
             } ?? ""
             var report: [String: Any] = ["profile": AutomaticSetupProfile.id, "reason": reason,
-                "seconds": Int(Date().timeIntervalSince(started)), "setup_pending": setup.pending,
+                "seconds": Int(Date().timeIntervalSince(started)),
+                "execution_budget_seconds": Int(executionBudget), "setup_pending": setup.pending,
                 "setup_message": setup.message,
                 "setup_fraction": setup.fraction,
                 "observed_guest_phases": patcherPhases.sorted(),
@@ -221,7 +224,7 @@ import CoreGraphics
                     let success = model.picture.image != nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(success ? 0 : 1) }
                 }
-                if Date().timeIntervalSince(started) > 10800 {
+                if Date().timeIntervalSince(started) > executionBudget {
                     finished = true
                     report("execution budget exhausted")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(1) }

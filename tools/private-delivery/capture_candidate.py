@@ -24,7 +24,8 @@ def capture(documents, evidence, output, app_commit, backend_commit, stopped, qe
     phases = report.get("observed_guest_phases", [])
     if (report.get("profile") != vm.PROFILE or report.get("setup_pending") is not False
             or not (report.get("patcher_done") is True or "done" in phases)
-            or report.get("guest_kernel_panic") is not False or "panic" in phases):
+            or report.get("guest_kernel_panic") is not False or "panic" in phases
+            or report.get("machine_running") is not True or report.get("guest_frame_received") is not True):
         raise ValueError("Cannot retain a successful-restore candidate from incomplete or panicked setup")
     if not all(re.fullmatch(r"[0-9a-f]{40}", value) for value in (app_commit, backend_commit)):
         raise ValueError("Exact source commit IDs required")

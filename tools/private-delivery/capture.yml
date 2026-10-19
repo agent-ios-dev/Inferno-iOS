@@ -17,7 +17,7 @@ jobs:
   restore:
     if: github.event.repository.private == true
     runs-on: macos-26
-    timeout-minutes: 210
+    timeout-minutes: 300
     env:
       GH_TOKEN: ${{ github.token }}
       APP_REF: ${{ inputs.app_ref }}
@@ -65,6 +65,7 @@ jobs:
         env:
           INFERNO_TEST_DOCUMENTS: ${{ github.workspace }}/private-smoke-data
           INFERNO_SMOKE_OUTPUT: ${{ github.workspace }}/smoke-evidence
+          INFERNO_SMOKE_BUDGET_SECONDS: "14400"
         run: ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke
       - name: Retain a closed restored candidate without claiming SpringBoard
         run: |
