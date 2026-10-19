@@ -396,3 +396,14 @@ restore rejection and rejection of a candidate as a ready kit; private template
 YAML parsed. Existing transport/DMA/DART/platform checks passed too. Local
 Windows passed8, skipped3 unavailable qemu-img/symlink tests. Runtime `app/`
 is byte-for-byte unchanged from active full restore **a2a81f2** (`git diff` checked).
+
+Host acceleration evidence: **39245428919 passed** the initial signed native
+HVF capability probe and all existing checks. Requested40-bit IPA configuration
+returned4209590287. Do not infer default VM support from that setting alone.
+Improved probe **3cc9c07**, run **39245757011**, separately attempts default
+VM creation and names the actual SDK status. Its already uploaded bounded JSON
+shows **HV_UNSUPPORTED** at both configure_ipa40 and default vm_create. No
+firmware, RAM or guest instructions ran in the probe. On these hosted runners
+HVF cannot accelerate restoration; don't switch to it on an assumption.
+Full verification39245757011 still running at this checkpoint; inspect final.
+Active restore39237004400 reached System image60%, no duplicate dispatched.
