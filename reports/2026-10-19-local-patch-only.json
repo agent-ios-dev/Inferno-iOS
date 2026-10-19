@@ -1,0 +1,18 @@
+{
+  "backend_commit": "87af92296132800974511dc1d049929d4bafc9e2",
+  "installed_disk_restore_completed": true,
+  "all_nine_disk_backup_hashes_verified": true,
+  "patch_only_guest_booted": true,
+  "restore_client_launched_in_patch_only": false,
+  "stock_restore_daemon_disabled_in_recovery_ramdisk": true,
+  "storage_partitions_visible": true,
+  "system_volume_mount_return": 0,
+  "dyld_patcher_exit_code": 0,
+  "patcher_reported_changes_applied": true,
+  "service_configuration_complete": false,
+  "normal_boot_handoff_complete": false,
+  "springboard_confirmed": false,
+  "backboardd_confirmed": false,
+  "visible_guest_ui_confirmed": false,
+  "status": "Awaiting guest System unmount and Data service configuration; do not reset early"
+}
