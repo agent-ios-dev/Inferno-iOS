@@ -45,10 +45,12 @@ jobs:
         run: |
           git init /tmp/inferno-range-core
           git -C /tmp/inferno-range-core remote add origin https://github.com/agent-ios-dev/Inferno.git
-          git -C /tmp/inferno-range-core fetch --depth 1 origin d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67
+          git -C /tmp/inferno-range-core fetch --depth 1 origin 1ec087f2746bbd23f18cc1ae1736451a27e11ed3
           git -C /tmp/inferno-range-core checkout --detach FETCH_HEAD
+          git -C /tmp/inferno-range-core fetch --depth 1 origin d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67
           python3 tests/usb/dwc3-range.py /tmp/inferno-range-core/hw/usb/hcd-dwc3.c
           python3 tests/usb/dart-invalidation.py /tmp/inferno-range-core/hw/arm/dart.c
+          python3 tests/usb/dwc3-ring.py /tmp/inferno-range-core
       - name: Typecheck iOS and macOS shared sources
         run: |
           echo 'enum BuildInfo { static let stamp = "CI typecheck" }' > /tmp/InfernoBuildInfo.swift

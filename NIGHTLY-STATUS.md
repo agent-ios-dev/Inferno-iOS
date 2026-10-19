@@ -442,3 +442,22 @@ User asked about doing restore on the local PC, then explicitly chose to leave
 the current Mac approach as it is. Read-only inventory: Ryzen7 4800H x64,
 16GB RAM, approximately125GiB free on C, no installed WSL distribution and no
 local QEMU build. Do not install a local toolchain as part of that question.
+
+Restore **39237004400 FAILED** after5410seconds, appa2a81f2/backendd5dcc2f.
+Bounded report `reports/2026-10-19-39237004400-empty-out-queue.json`:
+OUT NAK timeout frame0/16326, no bufferedIN. Enabled ep4 with active transfer,
+zero descriptors, can_free0, eventmask6 and pending0 throughout last8samples;
+consecutive NAKs15531..19398. ASR channel still open with16347bytes in flight,
+window114688; restored open/inflight0. No DART invalid/protection/read error,
+no DMA copy error, no panic/mux sequence/checksum failure. Patcher only waiting,
+ASR not completed, screenshot visually inspected: Apple logo + partial progress.
+Neither SpringBoard nor backboardd proved. Watcher59928 completed with exit1.
+
+Backend candidate **1ec087f2746bbd23f18cc1ae1736451a27e11ed3** fixes two
+independently demonstrable false TRB-loop conditions: reversed queued-descriptor
+upper bound and overbroad count+1 self interval. Links now match actual populated
+TRB addresses. Real cycles remain stopped. Adds bounded fetch-stop reason to
+existing NAK diagnostic, no extra DMA reads. Regression test extracts/runs actual
+dwc3_td_fetch and checks adjacent/ascending links, real cycles and HWO; baseline
+d5 is a negative control. CI verification pending; do not claim this caused the
+observed stall or promote to production yet. No duplicate full restore active.
