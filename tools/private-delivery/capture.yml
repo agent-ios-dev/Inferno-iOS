@@ -1,0 +1,89 @@
+name: Capture private restored VM candidate
+on:
+  workflow_dispatch:
+    inputs:
+      app_ref:
+        description: Exact full source SHA from agent-ios-dev/Inferno-iOS, containing private-delivery tools
+        required: true
+        type: string
+      emulator_ref:
+        description: Exact backend commit for the controlled restore comparison
+        required: true
+        default: d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67
+        type: string
+permissions:
+  contents: read
+jobs:
+  restore:
+    if: github.event.repository.private == true
+    runs-on: macos-26
+    timeout-minutes: 210
+    env:
+      GH_TOKEN: ${{ github.token }}
+      APP_REF: ${{ inputs.app_ref }}
+      EMULATOR_REF: ${{ inputs.emulator_ref }}
+    steps:
+      - name: Require the approved private destination and immutable sources
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
+          [[ "$APP_REF" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EMULATOR_REF" =~ ^[0-9a-f]{40}$ ]]
+      - uses: actions/checkout@v4
+        with:
+          repository: agent-ios-dev/Inferno-iOS
+          ref: ${{ inputs.app_ref }}
+      - name: Host build dependencies
+        run: brew install qemu meson ninja cmake pkg-config glib pixman libslirp lzfse gmp nettle libtasn1 libpng
+      - name: Build the pinned real emulator
+        run: |
+          git init inferno-src
+          git -C inferno-src remote add origin https://github.com/agent-ios-dev/Inferno.git
+          git -C inferno-src fetch --depth 1 origin "$EMULATOR_REF"
+          git -C inferno-src checkout --detach FETCH_HEAD
+          meson setup build/host inferno-src -Dbuildtype=release -Dshared_lib=true -Db_staticpic=true -Dwerror=false -Dhvf=disabled -Dcocoa=disabled -Dgtk=disabled -Dsdl=disabled -Dcurses=disabled -Dcoreaudio=disabled -Dcurl=disabled -Dlibssh=disabled -Dbzip2=disabled -Dvnc=enabled -Dvnc_jpeg=disabled -Dvnc_sasl=disabled -Dtools=disabled
+          ninja -C build/host libqemu-aarch64-softmmu.dylib
+      - name: Build the actual automatic setup controller as a test app
+        run: |
+          git init tools/InfernoFSPatcher
+          git -C tools/InfernoFSPatcher remote add origin https://git.chefkiss.dev/AppleHax/InfernoFSPatcher.git
+          git -C tools/InfernoFSPatcher fetch --depth 1 origin 3008aaaa0909824a71ee3040c9edc58703c250f5
+          git -C tools/InfernoFSPatcher checkout --detach FETCH_HEAD
+          app="$PWD/RestoreSmoke.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources/guest"
+          cp build/host/libqemu-aarch64-softmmu.dylib "$app/Contents/Frameworks/"
+          echo 'enum BuildInfo { static let stamp = "restore smoke" }' > /tmp/InfernoBuildInfo.swift
+          xcrun swiftc -D INFERNO_RESTORE_SMOKE -O -parse-as-library -target arm64-apple-macos15.0 app/Sources/*.swift /tmp/InfernoBuildInfo.swift tests/automatic-setup/RestoreSmoke.swift -o "$app/Contents/MacOS/RestoreSmoke"
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 app/guest/patcher-daemon.c -o "$app/Contents/Resources/guest/inferno_patcher"
+          xcrun --sdk iphoneos clang++ -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -std=c++17 tools/InfernoFSPatcher/src/main.cpp -o "$app/Contents/Resources/guest/inferno_fs_patcher"
+          codesign -f -s - "$app/Contents/Resources/guest/"*
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleExecutable string RestoreSmoke' "$app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleIdentifier string dev.agent-ios.inferno-restore-smoke' "$app/Contents/Info.plist"
+          codesign -f -s - "$app/Contents/Frameworks/"*
+          codesign -f -s - "$app"
+      - name: Run original app setup from no guest files, then observe its real framebuffer
+        env:
+          INFERNO_TEST_DOCUMENTS: ${{ github.workspace }}/private-smoke-data
+          INFERNO_SMOKE_OUTPUT: ${{ github.workspace }}/smoke-evidence
+        run: ./RestoreSmoke.app/Contents/MacOS/RestoreSmoke
+      - name: Retain a closed restored candidate without claiming SpringBoard
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
+          if pgrep -x RestoreSmoke >/dev/null; then echo "Emulator is still running"; exit 1; fi
+          python3 tools/private-delivery/capture_candidate.py "$PWD/private-smoke-data" "$PWD/smoke-evidence/restore-smoke.json" "$PWD/UNVERIFIED.inferno-vm-candidate.zip" --app-commit "$(git rev-parse HEAD)" --backend-commit "$EMULATOR_REF" --emulator-exited
+      - name: Recheck private artifact destination
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: private-unverified-vm-candidate
+          path: UNVERIFIED.inferno-vm-candidate.zip
+          retention-days: 3
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: restore-smoke-evidence
+          path: |
+            smoke-evidence/*.json
+            smoke-evidence/*.png
+          if-no-files-found: ignore

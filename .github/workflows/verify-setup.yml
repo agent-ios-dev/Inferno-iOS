@@ -13,6 +13,7 @@ jobs:
         run: |
           brew list qemu >/dev/null 2>&1 || brew install qemu
           python3 tests/automatic-setup/test_vm_bundle.py
+          ruby -ryaml -e 'YAML.load_file("tools/private-delivery/capture.yml"); puts "Private workflow template YAML parsed"'
       - name: Verify real Swift download and firmware identity validation
         run: |
           swiftc app/Sources/AutomaticSetupProfile.swift tests/automatic-setup/main.swift -o /tmp/inferno-setup-tests

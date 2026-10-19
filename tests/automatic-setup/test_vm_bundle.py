@@ -124,6 +124,36 @@ class BundleTests(unittest.TestCase):
                 vm.create(self.root, self.root / "out.zip", proof, "a" * 40, "b" * 40, stopped, "missing-qemu-img")
         self.assertFalse((self.root / "out.zip").exists())
 
+    def capture_module(self):
+        location = pathlib.Path(vm.__file__).parent / "private-delivery/capture_candidate.py"
+        capture_spec = importlib.util.spec_from_file_location("capture_candidate", location)
+        module = importlib.util.module_from_spec(capture_spec)
+        capture_spec.loader.exec_module(module)
+        return module
+
+    def test_private_capture_refuses_unfinished_restore(self):
+        report = self.root / "report.json"
+        report.write_text(json.dumps({"profile": vm.PROFILE, "setup_pending": True}))
+        with self.assertRaises(ValueError):
+            self.capture_module().capture(self.root, report, self.root / "candidate.zip", "a" * 40, "b" * 40, True)
+        self.assertFalse((self.root / "candidate.zip").exists())
+
+    @unittest.skipUnless(shutil.which("qemu-img"), "Requires the real qemu-img converter")
+    def test_private_candidate_is_not_a_ready_transfer(self):
+        self.fixture()
+        report = self.root / "report.json"
+        report.write_text(json.dumps({"profile": vm.PROFILE, "setup_pending": False,
+                                     "guest_kernel_panic": False, "observed_guest_phases": ["done"],
+                                     "visible_springboard_confirmed": False}))
+        output = self.root / "candidate.zip"
+        self.capture_module().capture(self.root, report, output, "a" * 40, "b" * 40, True)
+        with zipfile.ZipFile(output) as bundle:
+            meta = json.loads(bundle.read("Candidate.json"))
+            self.assertFalse(meta["visible_springboard_confirmed"])
+            self.assertEqual(meta["kind"], "unverified-vm-candidate-v1")
+        with self.assertRaisesRegex(ValueError, "Not a verified"):
+            vm.verify(output)
+
 
 if __name__ == "__main__":
     unittest.main()

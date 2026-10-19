@@ -89,6 +89,8 @@ def verify(archive):
             safe_path(item.filename)
             if stat.S_ISLNK(item.external_attr >> 16) or item.is_dir():
                 raise ValueError("Only regular file entries are allowed")
+        if "Machine.json" not in names:
+            raise ValueError("Not a verified machine transfer bundle")
         meta_entry = bundle.getinfo("Machine.json")
         if meta_entry.file_size > 1024 * 1024:
             raise ValueError("Oversized bundle manifest")
