@@ -129,4 +129,43 @@ func verifyGracefulClose(peerReset: Bool = false) throws {
 }
 try verifyGracefulClose()
 try verifyGracefulClose(peerReset: true)
+
+func verifyDuplexBoundary() throws {
+    var pair: [Int32] = [0,0]
+    precondition(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+    let done = DispatchSemaphore(value: 0)
+    DispatchQueue.global().async {
+        defer { Darwin.close(pair[1]); done.signal() }
+        for stage in 0..<4 {
+            let request = readExactly(pair[1],23)!
+            let incoming = request[2] == 0x69
+            precondition(incoming == (stage == 1))
+            let wanted = Int(request[21]) | Int(request[22]) << 8
+            let bytes = incoming ? [] : readExactly(pair[1],wanted)!
+            var body: [UInt8] = []
+            if stage == 1 {
+                // Incoming byte needs ACK before the peer will repost OUT.
+                body = [0,0,0,6, 0,0,0,37, 254,237,250,206, 0,0,0,0,
+                        48,57,240,1, 0,0,0,1, 0,0,0,0, 80,16,4,0,0,0,0,0,88]
+            } else {
+                precondition(bytes.count == (stage == 2 ? 36 : 136))
+                precondition(Array(bytes[20..<24]) == [0,0,0,0], "Unsent data must not advance ACK sequence")
+                precondition(bytes[13] == (stage == 3 ? 1 : 0), "Mux sequence gap or replay")
+                if stage == 2 { precondition(Array(bytes[24..<28]) == [0,0,0,2]) }
+                if stage == 3 { precondition(Array(bytes.dropFirst(36)) == [UInt8](repeating:0xA5,count:100)) }
+            }
+            let actual = stage == 0 ? 0 : (incoming ? body.count : wanted)
+            var reply: [UInt8] = [2,request[1]]
+            reply += Array(request[2..<6]) + [request[6]] + Array(request[7..<15])
+            reply += stage == 0 ? [254,255,255,255] : [0,0,0,0]
+            reply += [UInt8(actual & 255),UInt8(actual >> 8)]
+            writeAll(pair[1],reply+body)
+        }
+    }
+    let usb = GuestUSB(testSocket:pair[0])
+    try usb.testDuplexBoundary()
+    Darwin.close(pair[0])
+    precondition(done.wait(timeout:.now()+10) == .success)
+}
+try verifyDuplexBoundary()
 print("Real GuestUSB: full frame preserved across descriptor boundaries, NAK retries and short-OUT rejection passed")

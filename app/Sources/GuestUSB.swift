@@ -36,6 +36,7 @@ final class GuestUSB {
         /// device asked for — and not an error at all on a read that was merely
         /// looking: there, NAK means "nothing yet".
         case notReady
+        case serviceIncoming
 
         var errorDescription: String? {
             switch self {
@@ -43,6 +44,7 @@ final class GuestUSB {
             case .refused(let p): return L("Гость отказал в порту %d", Int(p))
             case .gone:           return L("Гость отключился")
             case .notReady:       return L("устройство не отвечает (NAK)")
+            case .serviceIncoming: return "Service buffered input before an unaccepted frame"
             }
         }
     }
@@ -71,6 +73,13 @@ final class GuestUSB {
     // Exercise the real transport against a bounded socket peer in CI.
     convenience init(testSocket: Int32) { self.init(); link = testSocket; endpointOut = 1 }
     func testBulkOut(_ bytes: [UInt8]) throws { try bulkOut(bytes) }
+    func testDuplexBoundary() throws {
+        muxVersion = 2; endpointIn = 1
+        let channel = Channel(host: self, localPort: 0xF001, remotePort: 12345)
+        channel.txAck = 1; channels[channel.localPort] = channel
+        try sendTcp(channel, flags: 0x10, payload: [UInt8](repeating: 0xA5, count: 100))
+        precondition(channel.txSeq == 100)
+    }
     func testFinish() throws {
         muxVersion = 2; endpointIn = 1
         let channel = Channel(host: self, localPort: 0xF001, remotePort: 12345)
@@ -420,6 +429,7 @@ final class GuestUSB {
 
     private func sendMux(_ proto: Proto, header: [UInt8] = [], payload: [UInt8] = []) throws {
         sendLock.lock(); defer { sendLock.unlock() }
+        while true {
         let size = (muxVersion < 2 ? 8 : 16) + header.count + payload.count
         var head = be32(proto.rawValue) + be32(UInt32(size))
         if muxVersion >= 2 {
@@ -429,7 +439,11 @@ final class GuestUSB {
         }
         let packet = head + header + payload
         do {
-            try bulkOut(packet)
+            try bulkOut(packet, serviceBeforeFrame: true)
+        } catch Failure.serviceIncoming {
+            if muxVersion >= 2 { txSeq &-= 1 }
+            try serviceMux(timeout: 0)
+            continue
         } catch {
             // The number is handed back: the device counts every packet and
             // drops everything after a gap for good -- "detected duplicate
@@ -447,6 +461,8 @@ final class GuestUSB {
         if muxVersion >= 2 {
             recent.append(packet)
             if recent.count > GuestUSB.recentKept { recent.removeFirst(recent.count - GuestUSB.recentKept) }
+        }
+        return
         }
     }
 
@@ -509,7 +525,8 @@ final class GuestUSB {
     /// 81" on the guest. What is read is only filed away in `inbound`: acting
     /// on it could mean sending an acknowledgement, and that would go out
     /// ahead of this packet under the next number.
-    private func bulkOut(_ packet: [UInt8], frameOffset: Int = 0, frameLength: Int? = nil) throws {
+    private func bulkOut(_ packet: [UInt8], frameOffset: Int = 0, frameLength: Int? = nil,
+                         serviceBeforeFrame: Bool = false) throws {
         // The socket accepts buffers larger than a USB bus packet, but DWC3
         // services only the current guest transfer descriptor per request.
         // A 16 KiB request crossing that descriptor's end can succeed with a
@@ -521,7 +538,8 @@ final class GuestUSB {
             var offset = 0
             while offset < packet.count {
                 let end = min(offset + maxPacket, packet.count)
-                try bulkOut(Array(packet[offset..<end]), frameOffset: offset, frameLength: packet.count)
+                try bulkOut(Array(packet[offset..<end]), frameOffset: offset, frameLength: packet.count,
+                            serviceBeforeFrame: serviceBeforeFrame)
                 offset = end
             }
             return
@@ -547,6 +565,13 @@ final class GuestUSB {
                     throw Failure.usb("OUT NAK timeout, frame offset \(frameOffset)/\(frameLength ?? packet.count), buffered IN \(buffered)")
                 }
                 try drainIn()
+                if serviceBeforeFrame && frameOffset == 0 && !packet.isEmpty {
+                    recvLock.lock()
+                    let ready = inbound.count >= 8 && Int(u32be(inbound, 4)) >= 8
+                        && Int(u32be(inbound, 4)) <= inbound.count
+                    recvLock.unlock()
+                    if ready { throw Failure.serviceIncoming }
+                }
                 Thread.sleep(forTimeInterval: 0.001)
             }
         }
@@ -693,19 +718,22 @@ final class GuestUSB {
         muxLock.lock()
         let start = sequence ?? channel.txSeq
         let ack = channel.txAck
-        if sequence == nil {
-            // Publish before the blocking USB send: the pump can receive its
-            // ACK before sendMux returns to this thread.
-            let consumed = UInt32(payload.count) + (flags & 0x03 != 0 ? 1 : 0)
-            channel.txSeq &+= consumed
-            if consumed > 0 { channel.pendingTCP.append((start, flags, payload)) }
-        }
         muxLock.unlock()
         var header = be16(channel.localPort) + be16(channel.remotePort)
         header += be32(start) + be32(ack)
         header += [5 << 4, flags]
         header += be16(UInt16((256 * 1024) >> 8)) + be16(0) + be16(0)
         try sendMux(.tcp, header: header, payload: payload)
+        // serviceMux shares sendLock: ACK processing cannot overtake this
+        // publication. While a frame is still unaccepted, a nested pure ACK
+        // therefore uses the old, actually transmitted TCP sequence.
+        if sequence == nil {
+            let consumed = UInt32(payload.count) + (flags & 0x03 != 0 ? 1 : 0)
+            muxLock.lock()
+            channel.txSeq &+= consumed
+            if consumed > 0 { channel.pendingTCP.append((start, flags, payload)) }
+            muxLock.unlock()
+        }
     }
 
     /// Reads from the device and files away what comes, returning as soon as
@@ -718,6 +746,9 @@ final class GuestUSB {
     /// 200 ms to notice it had reopened held the transfer to half a megabyte a
     /// second.
     private func serviceMux(timeout: TimeInterval) throws {
+        // One order for pump, synchronous readers and writers. Never hold
+        // serviceLock while waiting for a writer's sendLock.
+        sendLock.lock(); defer { sendLock.unlock() }
         serviceLock.lock(); defer { serviceLock.unlock() }
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
