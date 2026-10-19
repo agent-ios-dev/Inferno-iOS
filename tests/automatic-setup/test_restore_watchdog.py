@@ -38,6 +38,7 @@ class WatchdogTests(unittest.TestCase):
                 child.terminate()
                 child.wait()
             report = json.loads((pathlib.Path(folder) / "host-stall-1.json").read_text())
+            self.assertEqual(report.get("sample_exit"), 0, "Host sampling must actually work on this runner")
             self.assertFalse(report["guest_memory_exported"])
             self.assertFalse(report["raw_stack_exported"])
             self.assertLessEqual(set(report["known_stack_symbols"]), set(watchdog.SYMBOLS))
