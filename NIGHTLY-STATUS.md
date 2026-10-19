@@ -278,3 +278,9 @@ presence/count/actual/total, consecutive NAK count, at most every5 seconds.
 Only numeric metadata; no addresses or payload, no completion/event behavior
 changes. Harness retains last8 snapshots, so evidence covers the final stall.
 Keep shipping backend **37d6816**. No full restore/SpringBoard confirmed.
+
+Active branch-classification restore **39203613722**, app **f933ace**, backend
+**d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67**. Verification **39203613158**
+is pending/running as of05:15UTC. Do not duplicate. Last completed diagnostic
+restore is **39201121932**; its bounded JSON is committed above. At the deadline
+stop the nightly schedule and preserve exact remaining blocker/run state.
