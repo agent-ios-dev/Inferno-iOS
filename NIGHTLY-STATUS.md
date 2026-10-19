@@ -477,3 +477,13 @@ retains a closed candidate privately only after completion, then cold-boots a
 separate verified copy without restoring again. Inspect both JSON/PNG outputs;
 no automatic SpringBoard claim. Native build/real restore still pending; iPhone
 library builds and real device import remain unverified, production pin37 unchanged.
+
+While that comparison builds/runs, inspection found an additional independently
+testable fetch defect: dwc3_bd_length's negative count prematurely set the outer
+`ended` flag before the inner do/while, so a terminal descriptor with multiple
+owned TRBs loaded only its first. This can omit LST/IOC-bearing trailing entries;
+it is consistent with empty active queue/can_free0/pending0 but not yet proved to
+be the real guest's stall. Backend **b533085982f346a954b4ce8e27a827b04d64b3ce**
+lets actual LST/HWO checks end fetching after the whole owned descriptor. Tests
+now cover multi-TRB terminal LST and HWO boundary, with 1ec087f as a separate
+negative control. Verification pending. No second concurrent restore dispatched.

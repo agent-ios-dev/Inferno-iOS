@@ -76,8 +76,24 @@ static void clear(DWC3State* s,DWC3Transfer* xfer){
         TAILQ_REMOVE(&xfer->buffers,d,queue);dwc3_bd_free(s,d);
     }
 }
-int main(void){
+int main(int argc,char** argv){
     DWC3State s={0};DWC3Transfer x;
+    /* Terminal descriptors may contain several data TRBs. Pre-scan termination
+     * must not make the fetch loop stop after the first owned TRB. */
+    reset(&x);
+    put(0x100,TRBCTL_NORMAL,TRB_CTRL_HWO,0x800);
+    put(0x110,TRBCTL_NORMAL,TRB_CTRL_HWO|TRB_CTRL_LST,0xa00);
+    dwc3_td_fetch(&s,&x,0x100);
+    assert(x.count==1&&TAILQ_FIRST(&x.buffers)->count==2&&x.can_free);
+    clear(&s,&x);
+    reset(&x);
+    put(0x100,TRBCTL_NORMAL,TRB_CTRL_HWO,0x800);
+    put(0x110,TRBCTL_NORMAL,TRB_CTRL_HWO,0xa00);
+    put(0x120,TRBCTL_NORMAL,0,0xc00);
+    dwc3_td_fetch(&s,&x,0x100);
+    assert(x.count==1&&TAILQ_FIRST(&x.buffers)->count==2&&!x.can_free);
+    clear(&s,&x);
+    if(argc>1)return 0; /* Independent negative control for terminal fetch. */
     /* Adjacent link target is not part of the current descriptor. The old
      * count+1 self-loop interval incorrectly rejected this legitimate chain. */
     reset(&x);
@@ -117,14 +133,18 @@ int main(void){
 '''
 with tempfile.TemporaryDirectory() as folder:
     folder = pathlib.Path(folder)
-    def run(text, name):
+    def run(text, name, terminal_only=False):
         c = folder / (name + ".c")
         binary = folder / name
         c.write_text(prefix + functions(text) + tests)
         subprocess.run(["cc", "-std=c11", "-Wall", str(c), "-o", str(binary)], check=True)
-        return subprocess.run([str(binary)], capture_output=True, timeout=10).returncode
+        return subprocess.run([str(binary)] + (["terminal-only"] if terminal_only else []),
+                              capture_output=True, timeout=10).returncode
     assert run(source, "fixed-ring") == 0, "Actual TRB fetch regression failed"
     baseline = subprocess.check_output(["git", "-C", str(core), "show",
         "d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67:hw/usb/hcd-dwc3.c"], text=True)
     assert run(baseline, "old-ring") != 0, "Negative control must reproduce old false loop rejection"
-print("Actual DWC3 TRB fetch: adjacent/ascending chains, real cycles and ownership passed; old backend failed negative control")
+    preceding = subprocess.check_output(["git", "-C", str(core), "show",
+        "1ec087f2746bbd23f18cc1ae1736451a27e11ed3:hw/usb/hcd-dwc3.c"], text=True)
+    assert run(preceding, "premature-terminal", terminal_only=True) != 0, "Preceding backend must reproduce premature terminal fetch"
+print("Actual DWC3 TRB fetch: complete terminal descriptors, forward chains, real cycles and ownership passed; both old backends failed negative controls")
