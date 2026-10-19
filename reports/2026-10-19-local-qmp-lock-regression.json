@@ -1,0 +1,26 @@
+{
+  "scope": "native Linux QMP callback regression",
+  "old_backend": "fbbbf4ed18a43fb5f32a0de23a5ccca8c9f5f4cc",
+  "candidate_backend": "87af92296132800974511dc1d049929d4bafc9e2",
+  "restore_attempt_before_fix": {
+    "system_image_write_percent": 100,
+    "system_image_verify_percent": 100,
+    "last_guest_stage": "Copying inner volume fsroot tree into outer volume",
+    "host_diagnostic_trigger": "query-blockstats",
+    "fatal_assertion": "bdrv_graph_rdlock_main_loop: qemu_in_main_thread()",
+    "restore_completed": false,
+    "springboard_confirmed": false
+  },
+  "isolated_probe": {
+    "guest_execution_paused": true,
+    "prepared_firmware_mount_read_only": true,
+    "guest_disks_attached": false,
+    "temporary_probe_disks_only": true,
+    "old_backend_reproduced_same_assertion": true,
+    "candidate_native_build_passed": true,
+    "candidate_query_blockstats_calls_passed": 10,
+    "candidate_remained_prelaunch": true
+  },
+  "change": "Acquire scoped BQL in non-coroutine QMP dispatch bottom half before calling command handlers",
+  "notes": "This is a host callback test, not proof of installed or booted iOS. Failed installed-image attempt retained locally; retry uses a separate blank mutable disk set."
+}

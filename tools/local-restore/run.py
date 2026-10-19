@@ -22,6 +22,8 @@ def main():
     root = Path('/vm')
     data = root / 'InfernoData'
     prepared = json.loads((root / 'prepare.json').read_text())
+    if not (root / 'qemu-data/keymaps/en-us').is_file():
+        raise ValueError('VNC keymaps missing from prepared VM inputs')
     logs = root / ('restore-logs' if args.restore else 'boot-logs')
     logs.mkdir(exist_ok=True)
     if args.restore and not (root / 'patched-ramdisk.im4p').is_file():
