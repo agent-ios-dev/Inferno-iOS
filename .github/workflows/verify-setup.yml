@@ -1,4 +1,5 @@
-name: Verify automatic setup
+name: Code checks without guest iOS boot
+run-name: Code checks only — guest iOS is not booted
 on:
   push:
   workflow_dispatch:

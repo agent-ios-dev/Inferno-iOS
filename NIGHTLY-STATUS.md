@@ -536,3 +536,10 @@ for the user's prerequisite of real restore and SpringBoard/backboardd/UI proof.
 Nothing in that command executed. Do not retry an early IPA build or route around
 the rejection through an equivalent workflow. This does not affect the running
 private restore39251197224; continue it. No early IPA was built or delivered.
+
+At15:45Moscow private restore39251197224 remains active and System image10%.
+Do not dispatch another. Clarified verification workflow name/run-name to
+`Code checks only — guest iOS is not booted`, because commit title mentioning
+SpringBoard/backboardd confused the owner into interpreting green checks as
+actual guest process evidence. Metadata only; no runtime behavior changed,
+no redundant verification run requested. Historical run titles remain historical.
