@@ -1,5 +1,42 @@
 # Overnight restore investigation — 18/19 October 2026
 
+## Deadline checkpoint — 19 October 2026, 06:00 UTC / 09:00 Moscow
+
+Nightly automation `podium7` was deleted through the app at the requested
+morning deadline. No verified SpringBoard, completed clean restore or physical
+iPhone launch. No new IPA is presented as working.
+
+Latest active full restore: **39203613722**, app **f933ace**, backend
+**d5dcc2f0a353f65d9be4ba7b4d4011887f4c2f67**. At the final check it remained
+in progress; its last visible stage at 05:58 UTC was **System image 30%**.
+Do not start another identical test: first obtain this run's final bounded
+`restore-smoke-evidence` JSON/PNG. The existing finite CI job is left to finish;
+no recurring continuation remains scheduled. It can terminate on NAK or its
+6300-second application budget. An unfinished run is not a successful restore.
+
+Verification **39203613158 passed**: actual transport socket regressions,
+actual DMA/DART helper regressions, iOS/macOS/harness typechecks and guest
+patcher syntax check. Native test emulator and actual Mac restore app built.
+These checks do not establish a working guest UI or physical-device JIT.
+
+Last completed restore **39201121932** failed after 905 seconds at ASR9.27%,
+NAK frame byte0/16383, IN buffered0. ASR TCP window114688/inflight0/open,
+no guest panic, checksum/mux or DART access failure in bounded report. Precise
+controller refusal branch remains unconfirmed until current test completes.
+Its new report samples reason1 disabled,2 no transfer,3 no descriptor,4 copy
+path, with first-descriptor counters and pending-event bytes; last8 snapshots
+only, no addresses/firmware/payload/raw guest logs. A previous one-off sample
+showed enabled ep4/active transfer/3 buffers/pending0, but its timing cannot
+be tied to the final failure, so it is not proof of queue corruption.
+
+Next work: inspect current run's final snapshot before selecting a controller
+fix. If restore completes, require patcher done, successful reset to ordinary
+boot, and visual framebuffer inspection before claiming SpringBoard. Shipping
+workflow still pins **37d68169800a2e41de7da7e96478a15ac4431ca7** (verified).
+All experiments remain unpromoted. Earlier reports and changes are retained
+below; latest diagnostic reports are committed under `reports/2026-10-19-*`.
+
+
 No completed clean installation, SpringBoard or physical iPhone verification.
 Do not promote any current IPA as a working one-button install.
 
