@@ -235,9 +235,14 @@ final class RestoreClient {
                       to: request, over: restored)
 
         case "FUDData":
-            try reply(try imageData(arguments, list: "FUDImageList", type: "IsFUDFirmware",
-                                    data: "FUDImageData"),
-                      to: request, over: restored)
+            let imageName = arguments["ImageName"] as? String ?? "all"
+            let safeName = String(imageName.filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "," || $0 == "-") }.prefix(80))
+            let wantsList = (arguments["FUDImageList"] as? NSNumber)?.boolValue ?? false
+            note("RESTORE-FUD: begin name=\(safeName) list=\(wantsList ? 1 : 0)")
+            let body = try imageData(arguments, list: "FUDImageList", type: "IsFUDFirmware", data: "FUDImageData")
+            note("RESTORE-FUD: prepared name=\(safeName)")
+            try reply(body, to: request, over: restored)
+            note("RESTORE-FUD: sent name=\(safeName)")
 
         case "EANData":
             try reply(try imageData(arguments, list: "EANImageList", type: "IsEarlyAccessFirmware",

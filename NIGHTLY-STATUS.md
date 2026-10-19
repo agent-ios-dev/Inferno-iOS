@@ -124,9 +124,21 @@ volume. Host also classifies restored port FIN vs RST. Do not treat a closed
 channel as restore success or change volume paths until evidence supports it.
 Backend stays **d1fb886**, shipping IPA still **37d6816**.
 
-Active volume-mask restore: **39176850488**, app **9a01fe2**, backend
-**d1fb886**. Verification **39176753029** running at dispatch. Inspect these
-before dispatching another test; do not duplicate this restore.
+Volume-mask restore **39176850488**, app **9a01fe2**, backend **d1fb886**:
+failed after 3695 seconds, **restored channel RST confirmed**, FIN false,
+last request **FUDData**. Full ASR payload confirmed, no DART fault/panic/mux
+sequence error. Daemon remained in waiting. Volume masks 1,17,19,23: disk0,
+disk0s1, **disk0s1s1 system exists**, disk1; **disk0s1s2 data absent**. No
+disk1s1/s2 observed. Thus no evidence for changing hardcoded volume paths.
+Verification **39176753029 passed**.
+
+Compared `imageData` with libimobiledevice/idevicerestore's real
+`restore_send_image_data` implementation: list/single/all reply shape matches.
+Do not invent a protocol-shape fix. Next app adds bounded FUD metadata events:
+request component name + list flag, prepared, sent. No component payload,
+ticket or key is exported. This locates RST during preparation vs sending vs
+waiting for the next request, and identifies which FUD request is implicated.
+Backend remains **d1fb886**, no new production IPA.
 
 Verification on `ff5ca7c`: **39160921179 passed** (real Swift download validators,
 real USB transport socket tests, actual backend DMA helper tests, shared source

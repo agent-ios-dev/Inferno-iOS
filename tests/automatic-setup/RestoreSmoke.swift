@@ -61,6 +61,12 @@ import CoreGraphics
             collectConsolePhases()
             // Export only fixed booleans, never raw firmware/SEP console lines.
             let hostLog = LogCapture.shared.text
+            let fudEvents = hostLog.components(separatedBy: .newlines).compactMap { line -> String? in
+                guard let range = line.range(of: "RESTORE-FUD: ") else { return nil }
+                let value = String(line[range.upperBound...].prefix(120))
+                guard value.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || " ,-=".contains($0)) }) else { return nil }
+                return value
+            }
             let lastRequest = hostLog.components(separatedBy: .newlines).last {
                 $0.contains("Restore: the guest asks for ")
             }.flatMap { $0.components(separatedBy: "Restore: the guest asks for ").last }.map {
@@ -85,6 +91,7 @@ import CoreGraphics
                 "setup_fraction": setup.fraction,
                 "observed_guest_phases": patcherPhases.sorted(),
                 "observed_volume_masks": volumeMasks.sorted(),
+                "fud_events": Array(fudEvents.suffix(30)),
                 "restored_channel_reset": hostLog.contains("USB-TCP: guest reset channel port=62078"),
                 "restored_channel_finished": hostLog.contains("USB-TCP: guest finished channel port=62078"),
                 "last_restore_request": lastRequest,
