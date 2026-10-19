@@ -321,3 +321,26 @@ Active branch-classification restore **39203613722**, app **f933ace**, backend
 is pending/running as of05:15UTC. Do not duplicate. Last completed diagnostic
 restore is **39201121932**; its bounded JSON is committed above. At the deadline
 stop the nightly schedule and preserve exact remaining blocker/run state.
+
+## Resumed by user after morning deadline
+
+User requests continued work until actual SpringBoard, then a complete VM
+transfer file so the iPhone skips restoration. Do not publicly publish guest
+images, firmware or private state; deliver a verified consistent machine via
+an appropriate private/local export after a clean shutdown. Preserve all SEP,
+NVRAM and device-state disks together, not root alone. No working image yet.
+
+**39203613722 completed with execution-budget exhaustion**, not OUT timeout:
+6300 seconds, System image fraction **0.921757**, machine still running. No
+reported panic, DART access error or mux/checksum error. Last8 NAK samples
+show reason3 empty descriptor queue, enabled ep4, active transfer, zero buffers,
+NAK count1 and pending4/8. These are intermittent resource gaps that recovered,
+not evidence of the terminal 60-second NAK observed in older runs. Early ASR
+flags have scrolled out of the bounded host log (false in final old JSON does
+not mean ASR did not start; actual progress reached92%).
+
+Next test holds runtime app and backend **d5dcc2f** unchanged, increases
+harness budget to10800 seconds and workflow to210min to permit full transfer,
+patching/reset and900sec normal-boot observation. Harness now retains fixed
+ASR/restored event flags across log rotation, never raw logs. This changes
+test observation only; no fabricated success or promoted production backend.

@@ -21,6 +21,11 @@ import CoreGraphics
         var consolePartial = ""
         var patcherPhases = Set<String>()
         var volumeMasks = Set<Int>()
+        var observedHostStages = Set<String>()
+        let hostStages = ["Restore: ASR on port", "Restore: the image is validated, sending it",
+            "Restore: the whole system image is sent", "RESTORE-ASR: payload and FIN acknowledged",
+            "RESTORE-ASR: peer closed after full payload", "USB-TCP: guest reset channel port=62078",
+            "USB-TCP: guest finished channel port=62078"]
         let phaseMarkers: [(String, String)] = [
             ("waiting", "PATCHER: waiting for the restore to finish"),
             ("data-ready", "PATCHER: the data volume is here"),
@@ -31,6 +36,8 @@ import CoreGraphics
             ("done", "PATCHER: done, the machine can be reset now"),
             ("panic", "panic(cpu")]
         func collectConsolePhases() {
+            let hostText = LogCapture.shared.text
+            for marker in hostStages where hostText.contains(marker) { observedHostStages.insert(marker) }
             guard let file = try? FileHandle(forReadingFrom: VMConfig.guestConsoleLog) else { return }
             defer { try? file.close() }
             let end = (try? file.seekToEnd()) ?? 0
@@ -92,8 +99,8 @@ import CoreGraphics
                 "observed_guest_phases": patcherPhases.sorted(),
                 "observed_volume_masks": volumeMasks.sorted(),
                 "fud_events": Array(fudEvents.suffix(30)),
-                "restored_channel_reset": hostLog.contains("USB-TCP: guest reset channel port=62078"),
-                "restored_channel_finished": hostLog.contains("USB-TCP: guest finished channel port=62078"),
+                "restored_channel_reset": observedHostStages.contains("USB-TCP: guest reset channel port=62078"),
+                "restored_channel_finished": observedHostStages.contains("USB-TCP: guest finished channel port=62078"),
                 "last_restore_request": lastRequest,
                 "current_dma_in_failed": hostLog.contains("DWC3-DMA: current IN range failed"),
                 "current_dma_out_failed": hostLog.contains("DWC3-DMA: current OUT range failed"),
@@ -113,11 +120,11 @@ import CoreGraphics
                 "usb_ioerror_guest_endxfer": hostLog.contains("DWC3-IOERROR: guest ENDXFER"),
                 "usb_ioerror_queued_nak": hostLog.contains("DWC3-IOERROR: queued packet became NAK"),
                 "usb_ioerror_inflight_nak": hostLog.contains("DWC3-IOERROR: inflight dispatch became NAK"),
-                "asr_socket_opened": hostLog.contains("Restore: ASR on port"),
-                "asr_validation_completed": hostLog.contains("Restore: the image is validated, sending it"),
-                "asr_payload_sent": hostLog.contains("Restore: the whole system image is sent"),
-                "asr_payload_and_fin_acknowledged": hostLog.contains("RESTORE-ASR: payload and FIN acknowledged"),
-                "asr_peer_closed_after_full_payload": hostLog.contains("RESTORE-ASR: peer closed after full payload"),
+                "asr_socket_opened": observedHostStages.contains("Restore: ASR on port"),
+                "asr_validation_completed": observedHostStages.contains("Restore: the image is validated, sending it"),
+                "asr_payload_sent": observedHostStages.contains("Restore: the whole system image is sent"),
+                "asr_payload_and_fin_acknowledged": observedHostStages.contains("RESTORE-ASR: payload and FIN acknowledged"),
+                "asr_peer_closed_after_full_payload": observedHostStages.contains("RESTORE-ASR: peer closed after full payload"),
                 "patcher_waiting": guestLog.contains("PATCHER: waiting for the restore to finish"),
                 "patcher_data_volume_ready": guestLog.contains("PATCHER: the data volume is here"),
                 "patcher_system_mounted": guestLog.contains("PATCHER: mount_apfs /dev/disk0s1s1 says 0"),
@@ -214,7 +221,7 @@ import CoreGraphics
                     let success = model.picture.image != nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(success ? 0 : 1) }
                 }
-                if Date().timeIntervalSince(started) > 6300 {
+                if Date().timeIntervalSince(started) > 10800 {
                     finished = true
                     report("execution budget exhausted")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 10) { exit(1) }

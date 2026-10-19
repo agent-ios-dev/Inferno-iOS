@@ -12,7 +12,7 @@ permissions:
 jobs:
   restore:
     runs-on: macos-26
-    timeout-minutes: 135
+    timeout-minutes: 210
     env:
       EMULATOR_REF: ${{ inputs.emulator_ref }}
     steps:
