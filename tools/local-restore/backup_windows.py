@@ -23,6 +23,8 @@ def digest(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('vm', type=Path)
+    parser.add_argument('--destination', type=Path,
+                        help='New directory for a separate cold-test disk set')
     args = parser.parse_args()
     if os.name != 'nt':
         raise SystemExit('NTFS backup requires Windows')
@@ -34,9 +36,12 @@ def main():
         for container in containers:
             for mount in container.get('Mounts', []):
                 mounted = mount.get('Source', '').replace('\\', '/').lower().rstrip('/')
-                if mount.get('RW') and (mounted == vm_path or mounted.startswith(vm_path + '/')):
+                if mount.get('RW') and (mounted == vm_path or mounted.startswith(vm_path + '/')
+                                        or vm_path.startswith(mounted + '/')):
                     raise SystemExit('Stop containers with writable VM mounts before taking a backup')
-    destination = vm / 'pre-patch-backup'
+    destination = (args.destination.resolve() if args.destination else vm / 'pre-patch-backup')
+    if args.destination and destination.exists():
+        raise SystemExit('Cold-test destination must be new; refusing to overwrite it')
     destination.mkdir(exist_ok=True)
     if (destination / 'verified.json').exists():
         raise SystemExit('Backup is already verified; refusing replacement')
