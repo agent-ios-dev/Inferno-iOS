@@ -111,7 +111,12 @@ static int bounded_run(char* const argv[], unsigned seconds)
         sleep(1);
     }
     kill(pid, SIGKILL);
-    waitpid(pid, NULL, 0);
+    /* A filesystem mount may remain in an uninterruptible kernel wait.
+     * Never turn the timeout into another unbounded waitpid(). */
+    for (unsigned i = 0; i < 5; i++) {
+        if (waitpid(pid, NULL, WNOHANG) != 0) break;
+        sleep(1);
+    }
     return 1;
 }
 int main(void)
