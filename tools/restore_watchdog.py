@@ -42,6 +42,9 @@ def sample(pid, output, index):
                   guest_memory_exported=False, raw_stack_exported=False)
     output.mkdir(parents=True, exist_ok=True)
     (output / ("host-stall-%d.json" % index)).write_text(json.dumps(report, indent=2))
+    # Make this bounded result visible in the running Actions step, rather
+    # than waiting hours for its final artifact upload. Never print raw text.
+    print("Host stall diagnostic: " + json.dumps(report, sort_keys=True), flush=True)
 
 
 def watch(pid, output):
