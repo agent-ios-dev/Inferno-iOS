@@ -426,3 +426,19 @@ At14:48 Moscow active restore **39237004400** is at System image65%; continue
 watcher59928 and inspect its real result. No second full restore was started.
 Next delivery work is a clean normal cold-boot check of the retained closed VM,
 plus verified import; neither packaging checks nor an unverified candidate is UI proof.
+
+Cold-boot preparation **794ff62**, checks **39247553271 passed**:15 synthetic
+packaging/staging tests on Mac, including actual qemu-img, safe new-folder
+extraction/hash checks/no merge/no restore checkpoint, plus all platform checks.
+App **cb24054a95e42f79983c33d41f1774dd9b4c6a87**, checks **39248011255 passed**,
+adds bounded read-only live `pgrep -x` evidence for SpringBoard/backboardd during
+the separate cold boot (strict PID/name parser tested; no guessing from logs).
+Private workflow updated to **360f600**: captures original closed VM first,
+uploads private UNVERIFIED candidate, stages separate QCOW2+state copy, invokes
+normal VMModel.start with no AutomaticSetup/restore ramdisk, observes15minutes,
+exports JSON/PNG for actual inspection. Candidate is not promoted automatically.
+No private restore/capture dispatched yet. Main restore39237004400 unchanged.
+User asked about doing restore on the local PC, then explicitly chose to leave
+the current Mac approach as it is. Read-only inventory: Ryzen7 4800H x64,
+16GB RAM, approximately125GiB free on C, no installed WSL distribution and no
+local QEMU build. Do not install a local toolchain as part of that question.
