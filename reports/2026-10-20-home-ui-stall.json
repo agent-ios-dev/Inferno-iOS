@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-20",
+  "container": "inferno-native-window",
+  "qmp_running": true,
+  "home_screen_pixels_observed": true,
+  "responsive_home_screen_verified": false,
+  "settings_tap_opened_app": false,
+  "sleep_wake_changed_frame": false,
+  "springboard_pid": 55,
+  "backboardd_pid": 59,
+  "setup_pid": 383,
+  "guest_reboot_performed": false,
+  "guest_disk_write_outside_normal_runtime": false,
+  "private_evidence": "boot-logs/freeze-check-before.png; freeze-check-settings.png; home-freeze-wake.png",
+  "conclusion": "Visible home screen exists, but guest input/display response remains unverified and apparently stalled. QMP and APFS activity continue; exact cause not established."
+}
