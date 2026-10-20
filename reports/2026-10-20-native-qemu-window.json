@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-20",
+  "image": "inferno-local:native-gui",
+  "image_id": "sha256:dd51f624312ebddac365be3fc728a92c1f35be86226d53802ededeeba26c5f39",
+  "container": "inferno-native-window",
+  "display": "gtk,zoom-to-fit=on",
+  "windows_title": "Inferno iOS port (docker-desktop)",
+  "window_enumerated": true,
+  "screenshot_verified": false,
+  "gtk_x11_init_checked": true,
+  "native_build_passed": true,
+  "guest_home_screen_confirmed": false,
+  "source_vm": "existing local-inferno-vm-qmp-sparse, no restore",
+  "old_container": "inferno-local-restore, gracefully quit via QMP",
+  "cores": 2,
+  "memory": "3G"
+}

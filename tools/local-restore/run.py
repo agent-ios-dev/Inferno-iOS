@@ -31,6 +31,8 @@ def main():
                         help='Total virtual cores including SEP; 2 isolates single-AP boot')
     parser.add_argument('--memory', choices=('2G', '3G', '4G'), default='3G',
                         help='Guest RAM; phone automatic setup uses 2G')
+    parser.add_argument('--display', choices=('none', 'gtk'), default='none',
+                        help='Optional native QEMU window; gtk requires GUI-enabled backend and X11')
     args = parser.parse_args()
     for value in (args.recovery_image, args.recovery_log_name):
         if value is not None and (not args.patch_only or not value or
@@ -64,7 +66,8 @@ def main():
         '-dtb', str(data / 'Restore' / prepared['device_tree']),
         '-append', ('rd=md0 ' if args.patch_only else '') + 'tlto_us=-1 agm-genuine=1 agm-authentic=1 agm-trusted=1 serial=3 wdt=-1 launchd_unsecure_cache=1 -vm_compressor_wk_sw',
         '-smp', str(args.cores), '-m', args.memory, '-accel', 'tcg,thread=multi',
-        '-display', 'none', '-vnc', '0.0.0.0:0',
+        '-display', 'gtk,zoom-to-fit=on' if args.display == 'gtk' else 'none',
+        '-vnc', '0.0.0.0:0',
         '-qmp', 'tcp:0.0.0.0:4444,server=on,wait=off',
         '-chardev', 'socket,id=serial0,host=0.0.0.0,port=5555,server=on,wait=off,logfile=' + str(logs / 'guest-console.log'),
         '-serial', 'chardev:serial0',
