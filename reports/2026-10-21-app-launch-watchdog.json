@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-21",
+  "diagnosis": "SpringBoard watchdog terminates applications during scene creation/update",
+  "termination_code": "0x8badf00d",
+  "observations": [
+    {
+      "app": "MobileNotes",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    },
+    {
+      "app": "MobilePhone",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    },
+    {
+      "app": "Passbook",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    },
+    {
+      "app": "Preferences",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    },
+    {
+      "app": "Preferences",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-update"
+    },
+    {
+      "app": "Preferences",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-update"
+    },
+    {
+      "app": "Preferences",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    },
+    {
+      "app": "Preferences",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    },
+    {
+      "app": "Preferences",
+      "termination": "Termination Reason: Namespace SPRINGBOARD, Code 0x8badf00d",
+      "watchdog_event": "scene-create"
+    }
+  ],
+  "settings_main_thread_wait": "libdispatch/NetAppsUtilities/Home",
+  "notes_main_thread_wait": "SQLite/CoreData",
+  "phone_main_thread_wait": "libdispatch/TelephonyUtilities",
+  "wallet_main_thread_wait": "XPC/PassKit",
+  "memory_pressure_in_reviewed_preferences_stackshot": false,
+  "underlying_wait_cause_proven": false,
+  "fix_verified": false,
+  "user_observation": "Usually black app window, rarely renders then exits",
+  "diagnostics_copied_keep_originals": true,
+  "raw_reports_public": false,
+  "physical_phone_verified": false
+}
