@@ -13,7 +13,9 @@ jobs:
         run: python3 tools/local-restore/bootstrap_payload.py /tmp/bootstrap-payload
       - name: Test extraction and console job changes on temporary host files
         run: |
-          xcrun clang -Wall -Wextra -DINFERNO_BOOTSTRAP_ARCHIVE_TEST tools/local-restore/bootstrap_archive.c -larchive -o /tmp/archive-test
+          brew list libarchive >/dev/null 2>&1 || brew install libarchive
+          archive_headers="$(brew --prefix libarchive)/include"
+          xcrun clang -I "$archive_headers" -Wall -Wextra -DINFERNO_BOOTSTRAP_ARCHIVE_TEST tools/local-restore/bootstrap_archive.c -larchive -o /tmp/archive-test
           xcrun clang -Wall -Wextra -DINFERNO_BOOTSTRAP_CONSOLE_TEST tools/local-restore/bootstrap_console.c -framework CoreFoundation -o /tmp/console-test
           python3 tools/local-restore/test_bootstrap.py /tmp/archive-test /tmp/console-test /tmp/bootstrap-payload/strap.tar.lzma
           python3 tests/automatic-setup/test_cache_selection.py
@@ -21,7 +23,8 @@ jobs:
         run: |
           mkdir bootstrap-output
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
-          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -framework CoreFoundation -larchive tools/local-restore/bootstrap_recovery.c /tmp/bootstrap-payload/strap.S -o bootstrap-output/inferno_patcher
+          archive_headers="$(brew --prefix libarchive)/include"
+          xcrun --sdk iphoneos clang -I "$archive_headers" -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -framework CoreFoundation -larchive tools/local-restore/bootstrap_recovery.c /tmp/bootstrap-payload/strap.S -o bootstrap-output/inferno_patcher
           codesign -f -s - bootstrap-output/inferno_patcher
           codesign --verify --strict bootstrap-output/inferno_patcher
           shasum -a 256 bootstrap-output/inferno_patcher > bootstrap-output/SHA256SUMS
