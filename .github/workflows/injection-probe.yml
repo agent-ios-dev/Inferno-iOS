@@ -1,0 +1,34 @@
+name: Build guest dylib injection probe - no guest boot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that only the injected constructor makes the test succeed
+        run: |
+          xcrun clang tests/guest-injection/probe.c -o /tmp/inferno-probe
+          xcrun clang -dynamiclib tests/guest-injection/payload.c -o /tmp/inferno-probe.dylib
+          if env -u INFERNO_TEST_DYLIB_LOADED /tmp/inferno-probe; then exit 1; else test "$?" = 3; fi
+          env -u INFERNO_TEST_DYLIB_LOADED DYLD_INSERT_LIBRARIES=/tmp/inferno-probe.dylib /tmp/inferno-probe
+          python3 tools/local-restore/test_guest_console.py
+      - name: Build and sign guest test binaries
+        run: |
+          mkdir probe-output
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -Os tests/guest-injection/probe.c -o probe-output/inferno-probe
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -Os -dynamiclib tests/guest-injection/payload.c -o probe-output/inferno-probe.dylib
+          codesign -f -s - probe-output/inferno-probe
+          codesign -f -s - probe-output/inferno-probe.dylib
+          codesign --verify --strict probe-output/inferno-probe
+          codesign --verify --strict probe-output/inferno-probe.dylib
+          shasum -a 256 probe-output/inferno-probe* > probe-output/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guest-dylib-injection-probe
+          path: probe-output/
+          retention-days: 7
