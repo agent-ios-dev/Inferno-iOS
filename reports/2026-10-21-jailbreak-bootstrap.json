@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-21",
+  "scope": "independent local experimental VM copy",
+  "main_user_vm_modified": false,
+  "full_jailbreak_verified": false,
+  "sileo_installed": false,
+  "springboard_tweak_injection_verified": false,
+  "bootstrap_helper_build": 39655489640,
+  "normal_boot_checks": {
+    "shell_euid": 0,
+    "dpkg_version": "1.19.7",
+    "dpkg_architecture": "iphoneos-arm",
+    "apt_query_version": "1.8.2.2-1",
+    "root_remount_exit": 0,
+    "dpkg_database_writable": true
+  },
+  "real_deb_cycle": {
+    "package": "com.inferno.package-test",
+    "version": "1.0",
+    "content": "one marker text file; no executable, dependencies or maintainer scripts",
+    "install_exit": 0,
+    "install_seconds": 176.6,
+    "database_query_exit": 0,
+    "exact_file_content_check_exit": 0,
+    "remove_exit": 0,
+    "removed_file_absence_check_exit": 0
+  },
+  "signed_arm64e_injection_probe": {
+    "build": 39659704504,
+    "native_host_negative_and_positive_controls_passed": true,
+    "guest_without_library_exit": 137,
+    "guest_main_marker_seen": false,
+    "separate_explicit_cdhash_cache_changed_result": false,
+    "cause": "unconfirmed pre-main SIGKILL; root privileges and successful package installation do not establish executable launch or injection",
+    "next_control": "standard arm64 test now succeeds from System; see controlled result below"
+  },
+  "transport_findings": [
+    "Paced serial commands with a continuous reader successfully transferred the small package and compressed probe binaries.",
+    "AFC service opened after TLS 1.2 but a file write timed out; complete AFC upload is not verified.",
+    "Guest /var/tmp was cleared during boot; persistent test files are under the guest Media directory.",
+    "Persistent Media files were incomplete after QMP quit without a completed guest flush; control was re-uploaded and both guest SHA256 values matched before its no-reboot test."
+  ],
+  "private_evidence": "Private VM disks, trust cache, serial logs and raw reports remain local; none are included in this report.",
+  "system_path_arm64_injection_probe": {
+    "build": 39662776461,
+    "guest_sha256_matches_executable_and_library": true,
+    "explicit_boot_cdhash_entries_loaded": true,
+    "media_path_exit": 137,
+    "system_path_without_library_exit": 3,
+    "without_library_expected_marker": true,
+    "system_path_with_library_exit": 0,
+    "loaded_library_constructor_marker": true,
+    "scope": "only this test process; not SpringBoard or automatic tweak injection",
+    "finding": "same executable runs from System after failing from Data Media; exact underlying execution policy unconfirmed"
+  }
+}
