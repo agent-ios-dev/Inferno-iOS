@@ -62,4 +62,5 @@ jobs:
           xcrun --sdk macosx swiftc -D INFERNO_RESTORE_SMOKE -typecheck -target arm64-apple-macos15.0 -sdk "$(xcrun --sdk macosx --show-sdk-path)" -parse-as-library /tmp/InfernoBuildInfo.swift app/Sources/*.swift tests/automatic-setup/BootProcessEvidence.swift tests/automatic-setup/RestoreSmoke.swift
       - name: Check restore daemon builds for the guest
         run: |
+          python3 tests/automatic-setup/test_cache_selection.py
           xcrun --sdk iphoneos clang -fsyntax-only -target arm64-apple-ios14.0 -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" app/guest/patcher-daemon.c

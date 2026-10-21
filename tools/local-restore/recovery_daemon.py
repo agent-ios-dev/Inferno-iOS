@@ -4,11 +4,6 @@ import sys
 
 repo = Path(__file__).resolve().parents[2]
 source = (repo / 'app/guest/patcher-daemon.c').read_text()
-selector = 'strstr(e->d_name, ".map") != NULL'
-if source.count(selector) != 1:
-    raise ValueError('Cache file selection changed')
-source = source.replace(selector,
-    selector + ' || strstr(e->d_name, ".InfernoOriginalBytes") != NULL')
 start = source.index('static int disable_services(void)')
 end = source.index('\nint main(void)', start)
 source = source[:start] + '''static int disable_services(void)

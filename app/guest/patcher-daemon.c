@@ -77,9 +77,24 @@ static int cache_path(char* out, int size)
     DIR* dir = opendir(CACHE_DIR);
     if (dir == NULL) { return 0; }
     int found = 0;
-    for (struct dirent* e = readdir(dir); e != NULL && !found; e = readdir(dir)) {
-        if (strncmp(e->d_name, "dyld_shared_cache", 17) != 0 || strstr(e->d_name, ".map") != NULL) { continue; }
-        snprintf(out, size, "%s/%s", CACHE_DIR, e->d_name);
+    for (struct dirent* e = readdir(dir); e != NULL; e = readdir(dir)) {
+        // Select a primary cache, never patch metadata or original-byte backups.
+        if (strcmp(e->d_name, "dyld_shared_cache_arm64e") != 0 &&
+            strcmp(e->d_name, "dyld_shared_cache_arm64") != 0) { continue; }
+        char candidate[1024];
+        int length = snprintf(candidate, sizeof(candidate), "%s/%s", CACHE_DIR, e->d_name);
+        if (length < 0 || (size_t)length >= sizeof(candidate)) { continue; }
+        struct stat st;
+        if (lstat(candidate, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size < 4096) { continue; }
+        int fd = open(candidate, O_RDONLY | O_NOFOLLOW);
+        char magic[7];
+        int valid = fd >= 0 && read(fd, magic, sizeof(magic)) == sizeof(magic) &&
+                    memcmp(magic, "dyld_v1", sizeof(magic)) == 0;
+        if (fd >= 0) { close(fd); }
+        if (!valid) { continue; }
+        // Ambiguous input must fail rather than depend on directory order.
+        if (found || length >= size) { closedir(dir); return 0; }
+        memcpy(out, candidate, length + 1);
         found = 1;
     }
     closedir(dir);

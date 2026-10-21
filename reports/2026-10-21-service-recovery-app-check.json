@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-21",
+  "complete_app_crash_fix_verified": false,
+  "physical_iphone_verified": false,
+  "guest_reinstalled": false,
+  "runtime_backend_changed": false,
+  "application_watchdog_disabled": false,
+  "service_helper_build": 39647682649,
+  "service_helper_native_tests": "passed",
+  "recovery_result": {
+    "system_mounted": true,
+    "configuration_return_code": 0,
+    "unmount_return_code": 1,
+    "whole_helper_success": false
+  },
+  "subsequent_normal_boot": {
+    "total_cores_including_sep": 2,
+    "memory": "3G",
+    "springboard_pid": 56,
+    "backboardd_pid": 59,
+    "commcenter_and_locationd_absent_in_repeated_live_process_checks": true,
+    "observations": [
+      "First Settings launch showed a blank view and the process later disappeared. A fresh private stackshot confirmed another scene-create watchdog termination.",
+      "Clock PID 230 rendered world clocks, switched to Stopwatch and accepted Start. A subsequent frame showed a running count beyond 21 seconds; the process remained present in the later probe.",
+      "Notes rendered its welcome sheet, accepted Continue and displayed the folders view with an iCloud prompt. Full note editing and later process survival are not confirmed.",
+      "A subsequent Settings launch rendered the menu. Later frames showed Accessibility and AssistiveTouch settings; Preferences PID 311 remained present in the final probe. The specific navigation target did not match every injected input, so exact touch mapping needs separate verification."
+    ]
+  },
+  "limitations": [
+    "Successful launches after warm-up do not establish that the service change alone caused the improvement.",
+    "Cold-launch reliability, repeated launch/exit cycles and all applications remain unverified.",
+    "The older phone VM archive and IPA do not contain this guest configuration change.",
+    "No new production IPA or VM bundle is designated ready."
+  ],
+  "preparation_code_fix": {
+    "problem": "The old prefix selector could pass a .InfernoOriginalBytes backup to the filesystem patcher.",
+    "change": "Require an unambiguous primary cache filename, regular non-symlink file, minimum header size and dyld_v1 signature.",
+    "actual_production_selector_directory_tests": "passed on local Linux compiler; Mac/iOS checks run separately"
+  },
+  "private_evidence": "Screenshots, read-only process snapshots and crash/syslog reports retained locally; no guest assets or raw private logs in this report."
+}
