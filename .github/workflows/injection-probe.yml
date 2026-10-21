@@ -28,6 +28,18 @@ jobs:
           codesign --verify --strict probe-output/inferno-probe.dylib
           shasum -a 256 probe-output/inferno-probe* > probe-output/SHA256SUMS
           python3 tools/local-restore/test_probe_trustcache.py probe-output
+      - name: Build standard arm64 control for early iOS 14 ABI comparison
+        run: |
+          mkdir probe-output/arm64
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64 -isysroot "$sdk" -mios-version-min=14.0 -Os tests/guest-injection/probe.c -o probe-output/arm64/inferno-probe
+          xcrun --sdk iphoneos clang -arch arm64 -isysroot "$sdk" -mios-version-min=14.0 -Os -dynamiclib tests/guest-injection/payload.c -o probe-output/arm64/inferno-probe.dylib
+          codesign -f -s - probe-output/arm64/inferno-probe
+          codesign -f -s - probe-output/arm64/inferno-probe.dylib
+          codesign --verify --strict probe-output/arm64/inferno-probe
+          codesign --verify --strict probe-output/arm64/inferno-probe.dylib
+          shasum -a 256 probe-output/arm64/inferno-probe* > probe-output/arm64/SHA256SUMS
+          python3 tools/local-restore/test_probe_trustcache.py probe-output/arm64
       - uses: actions/upload-artifact@v4
         with:
           name: guest-dylib-injection-probe
