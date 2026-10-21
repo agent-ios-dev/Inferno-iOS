@@ -1,0 +1,28 @@
+name: Check service-only recovery helper - no guest boot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  helper:
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test native configuration changes without a guest
+        run: |
+          xcrun clang -O2 -DINFERNO_CACHE_TEST -framework CoreFoundation tools/local-restore/launchd_cache.c -o /tmp/cache-test
+          python3 tools/local-restore/test_launchd_cache.py /tmp/cache-test
+      - name: Compile and sign service-only recovery helper
+        run: |
+          mkdir service-output
+          sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -framework CoreFoundation tools/local-restore/service_recovery.c -o service-output/inferno_patcher
+          codesign -f -s - service-output/inferno_patcher
+          codesign --verify --strict service-output/inferno_patcher
+          shasum -a 256 service-output/inferno_patcher > service-output/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: service-only-recovery-helper
+          path: service-output/
+          retention-days: 7
