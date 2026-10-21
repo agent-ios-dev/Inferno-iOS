@@ -25,7 +25,7 @@ jobs:
           sdk="$(xcrun --sdk iphoneos --show-sdk-path)"
           archive_headers="$(brew --prefix libarchive)/include"
           xcrun --sdk iphoneos clang -I "$archive_headers" -arch arm64e -isysroot "$sdk" -mios-version-min=14.0 -O2 -framework CoreFoundation -larchive tools/local-restore/bootstrap_recovery.c -o bootstrap-output/inferno_patcher
-          codesign -f -s - bootstrap-output/inferno_patcher
+          codesign -f -s - --entitlements tools/local-restore/bootstrap-entitlements.plist bootstrap-output/inferno_patcher
           codesign --verify --strict bootstrap-output/inferno_patcher
           shasum -a 256 bootstrap-output/inferno_patcher > bootstrap-output/SHA256SUMS
       - uses: actions/upload-artifact@v4

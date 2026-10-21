@@ -16,7 +16,7 @@ static void* read_payload(size_t* size)
         char path[32]; snprintf(path, sizeof(path), "/dev/rdisk%d", i);
         int fd = open(path, O_RDONLY); if (fd < 0) continue;
         unsigned char header[4096];
-        if (read(fd, header, sizeof(header)) != sizeof(header) || memcmp(header, "INFERNOBSTRAP01", 14)) { close(fd); continue; }
+        if (read(fd, header, sizeof(header)) != sizeof(header) || memcmp(header, "INFERNOBSTRAP01", 15)) { close(fd); continue; }
         size_t length = 0;
         for (int j=0; j<4; j++) length |= (size_t)header[16+j] << (j*8);
         if (!length || length > 20*1024*1024) { close(fd); continue; }

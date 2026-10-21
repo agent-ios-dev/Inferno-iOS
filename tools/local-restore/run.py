@@ -25,6 +25,8 @@ def main():
                         help='Explicit alternate RAMdisk basename, only with --patch-only')
     parser.add_argument('--recovery-log-name',
                         help='New log directory basename, only with --patch-only')
+    parser.add_argument('--bootstrap-payload',
+                        help='Pinned utility payload raw disk basename; experimental patch-only copy')
     parser.add_argument('--ssc-status-diagnostics', action='store_true',
                         help='Bounded SEP controller command/result counters; diagnostic backend required')
     parser.add_argument('--cores', type=int, choices=range(2, 8), default=7,
@@ -34,7 +36,7 @@ def main():
     parser.add_argument('--display', choices=('none', 'gtk'), default='none',
                         help='Optional native QEMU window; gtk requires GUI-enabled backend and X11')
     args = parser.parse_args()
-    for value in (args.recovery_image, args.recovery_log_name):
+    for value in (args.recovery_image, args.recovery_log_name, args.bootstrap_payload):
         if value is not None and (not args.patch_only or not value or
                                   Path(value).name != value or '/' in value or '\\' in value or
                                   value in ('.', '..')):
@@ -88,6 +90,13 @@ def main():
     if recovery:
         command += ['-initrd', str(ramdisk),
             '-global', 'driver=apple-smc,property=hold-reset,value=on']
+    if args.bootstrap_payload:
+        payload = root / args.bootstrap_payload
+        with payload.open('rb') as handle:
+            if handle.read(15) != b'INFERNOBSTRAP01':
+                raise ValueError('Invalid bootstrap payload disk')
+        command += ['-drive', f'file={payload},format=raw,if=none,id=bootstrap,readonly=on',
+            '-device', 'nvme-ns,drive=bootstrap,bus=nvme-bus.0,nsid=8,nstype=2,logical_block_size=4096,physical_block_size=4096']
     children = []
     handles = []
     def start(argv, name, **kwargs):
