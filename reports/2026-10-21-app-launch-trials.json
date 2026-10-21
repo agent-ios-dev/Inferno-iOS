@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-21",
+  "fix_verified": false,
+  "original_state_restored": true,
+  "active_container": "inferno-native-window",
+  "active_cores": 2,
+  "active_memory": "3G",
+  "active_resolution": "828x1792",
+  "application_watchdog_disabled": false,
+  "trials": [
+    {
+      "accepted": false,
+      "ticks": 12585702,
+      "result": "kernel spinlock panic",
+      "configuration": "4 CPUs, original spinlock timeout"
+    },
+    {
+      "accepted": false,
+      "result": "black framebuffer during bounded boot observation; no app success",
+      "configuration": "2 CPUs, 414x896 scale1"
+    },
+    {
+      "accepted": false,
+      "ticks": 12584943,
+      "result": "boot argument present but spinlock panic still at ~0.52 seconds",
+      "configuration": "4 CPUs, slto_us=10000000"
+    }
+  ],
+  "next_investigation": "Validate why exact kernel retains spinlock threshold despite accepted boot arg; examine SMP lock ownership and main-thread dependency waits. Do not simply suppress watchdog or panic."
+}
