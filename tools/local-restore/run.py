@@ -27,6 +27,8 @@ def main():
                         help='New log directory basename, only with --patch-only')
     parser.add_argument('--bootstrap-payload',
                         help='Pinned utility payload raw disk basename; experimental patch-only copy')
+    parser.add_argument('--probe-trustcache',
+                        help='Explicit separate trust cache basename for signed test binaries')
     parser.add_argument('--ssc-status-diagnostics', action='store_true',
                         help='Bounded SEP controller command/result counters; diagnostic backend required')
     parser.add_argument('--cores', type=int, choices=range(2, 8), default=7,
@@ -42,6 +44,9 @@ def main():
                                   value in ('.', '..')):
             parser.error('Recovery overrides require --patch-only and a plain basename')
     root = Path('/vm')
+    if args.probe_trustcache and (Path(args.probe_trustcache).name != args.probe_trustcache or
+            '/' in args.probe_trustcache or '\\' in args.probe_trustcache or args.probe_trustcache in ('.', '..')):
+        parser.error('Probe trust cache requires a plain basename')
     data = root / 'InfernoData'
     prepared = json.loads((root / 'prepare.json').read_text())
     if not (root / 'qemu-data/keymaps/en-us').is_file():
@@ -57,7 +62,7 @@ def main():
     if recovery and not ramdisk.is_file():
         raise ValueError('Patched restore ramdisk missing')
     machine = ['t8030', 'usb-uplink-type=inferno', 'usb-uplink-addr=unix:/tmp/iusb.sock',
-        'trustcache=' + str(data / 'Restore' / prepared['trustcache']),
+        'trustcache=' + str(root / args.probe_trustcache if args.probe_trustcache else data / 'Restore' / prepared['trustcache']),
         'ticket=' + str(data / 'root_ticket.der'),
         'sep-fw=' + str(data / 'sep-firmware.n104.RELEASE.new.img4'),
         'sep-rom=' + str(root / 'AppleSEPROM-Cebu-B1'), 'kaslr-off=true',

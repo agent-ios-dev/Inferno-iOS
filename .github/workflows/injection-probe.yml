@@ -27,6 +27,7 @@ jobs:
           codesign --verify --strict probe-output/inferno-probe
           codesign --verify --strict probe-output/inferno-probe.dylib
           shasum -a 256 probe-output/inferno-probe* > probe-output/SHA256SUMS
+          python3 tools/local-restore/test_probe_trustcache.py probe-output
       - uses: actions/upload-artifact@v4
         with:
           name: guest-dylib-injection-probe
